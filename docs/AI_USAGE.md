@@ -32,6 +32,10 @@ Record material assistance, not every autocomplete event. Group closely related 
 | AI-004 | `2026-09-18` | Requirements analysis | Re-read README and extract mandatory, optional, scoring, branch, commit, and submission rules | `README.md`, planning documents | Used to update the plan and guidance | Direct line-by-line README review |
 | AI-005 | `2026-09-18` | Documentation scaffolding | Create assessment templates for findings, manual tests, Todo Sharing, performance evidence, and AI disclosure | `.gitignore`, `docs/*.md` | Accepted as draft templates | Ignore behavior and Markdown structure checked locally |
 | AI-006 | `2026-09-18` | Initial metadata | Populate verifiable branch, commit, environment, test-blocker, and assistance information | `docs/BUG_REPORT.md`, `docs/TEST_PLAN.md`, `docs/AI_USAGE.md` | Accepted as initial data; candidate identity spelling/sign-off must be confirmed | Git metadata and local tool versions queried directly |
+| AI-007 | `2026-09-18` | Backend regression coverage | Add API regressions for JWT expiry/type, Todo ownership, cache isolation/invalidation, and partial updates | `backend/tests/` | Tests accepted and committed | Baseline failures reproduced; final backend suite passes 19/19 |
+| AI-008 | `2026-09-18` | Backend remediation | Fix JWT validation, owner-scoped Todo access, partial updates, and versioned user/query cache behavior | Backend security, dependencies, Todo routes/services, Redis wrapper | Changes accepted as atomic remediation commits | Targeted regressions, full pytest, Black, and scoped Flake8 checks |
+| AI-009 | `2026-09-18` | Frontend remediation | Scope Todo query keys, clear session cache on logout/account change/401, and restore optimistic snapshots | Frontend auth, API client, Todo hooks/components, unit-test setup | Changes accepted and committed | `npm test` 2/2, `npm run lint`, and `npm run build` pass |
+| AI-010 | `2026-09-18` | Evidence synchronization | Update issue status, test results, residual risks, and AI disclosure without marking unexecuted work complete | `docs/BUG_REPORT.md`, `docs/TEST_PLAN.md`, `docs/AI_USAGE.md` | Documentation updated to current commit evidence | Compared against Git history and recorded command output |
 
 If full prompt logs are required, store sanitized logs under `docs/ai-prompts/` and link them here. Never include secrets, access tokens, personal data, private URLs, or hidden evaluation material.
 
@@ -39,7 +43,7 @@ If full prompt logs are required, store sanitized logs under `docs/ai-prompts/` 
 
 | Decision | AI contribution | Candidate decision and rationale | Evidence |
 |---|---|---|---|
-| Prioritize authorization, cache isolation, and JWT before feature work | Identified these as the highest-risk confidentiality/integrity failures | Adopted as the working sequence; runtime proof and regression tests are still required | `REMEDIATION_PLAN.md` and initial issue register |
+| Prioritize authorization, cache isolation, and JWT before feature work | Identified these as the highest-risk confidentiality/integrity failures | Adopted; regression coverage and fixes were implemented before optional features | Commits `cea96fd` through `5816658`; backend suite 19/19 passes |
 | Target the maximum 115/100 score | Mapped 100 mandatory points plus 15 Tier 4 bonus points | Adopted for planning; mandatory gates must pass before bonus work | README traceability matrix |
 | Keep Todo Sharing as specification-only work | Flagged README's explicit instruction not to implement Task 3A | Adopted to prevent scope expansion | `docs/TODO_SHARING_SPEC.md` |
 | Track assessment documents while keeping the answer key ignored | Identified the conflict between required `docs/` deliverables and the root ignore rule | Adopted; removed broad `docs/` ignore and retained `docs/ANSWER_KEY.md` | `git check-ignore` verification |
@@ -50,11 +54,13 @@ If full prompt logs are required, store sanitized logs under `docs/ai-prompts/` 
 |---|---|---|---|
 | `AGENTS.md` | Repository analysis and drafting | Candidate review pending | Compared with README and current code structure |
 | `REMEDIATION_PLAN.md` | Planning and risk prioritization | Candidate review pending | Mapped against mandatory and bonus README requirements |
-| `docs/BUG_REPORT.md` | Initial issue inventory/template and metadata | Candidate review and runtime reproduction pending | Static finding locations checked; every issue must still be reproduced/verified |
-| `docs/TEST_PLAN.md` | Test-plan structure and initial environment metadata | Candidate execution and approval pending | Local versions and initial pytest blocker recorded |
+| `docs/BUG_REPORT.md` | Issue inventory, status tracking, and evidence synchronization | Candidate review and final PR links pending | Fixed findings mapped to commits/tests; unresolved and integration-dependent findings remain open |
+| `docs/TEST_PLAN.md` | Test-plan structure, environment metadata, and execution log | Manual/E2E execution and candidate approval pending | Backend/frontend automated reruns recorded without marking unexecuted cases complete |
 | `docs/TODO_SHARING_SPEC.md` | Specification skeleton | Product/security/backend decisions pending | Structure compared with README and provided template |
 | `docs/PERFORMANCE_REPORT.md` | Benchmark-report structure | Measured PostgreSQL data pending | No performance conclusion has been claimed |
-| `docs/AI_USAGE.md` | Disclosure structure and initial assistance log | Candidate confirmation and final sign-off pending | Cross-checked against material assistance in this workspace |
+| `docs/AI_USAGE.md` | Disclosure structure and ongoing assistance log | Candidate confirmation and final sign-off pending | Cross-checked against material assistance, Git history, and recorded verification |
+| Backend auth/Todo/cache source and tests | Regression design and implementation assistance | Candidate review remains required | Full backend suite 19/19; Black passes; remaining test-environment limitations documented |
+| Frontend auth/query/session source and tests | Query-key/session design and implementation assistance | Candidate review remains required | Unit tests 2/2, ESLint pass, production build pass |
 
 Add source code and test files to this table when AI materially contributes to them.
 
@@ -70,8 +76,8 @@ Add source code and test files to this table when AI materially contributes to t
 
 - [ ] Reviewed every changed line and related call path.
 - [ ] Confirmed behavior against `README.md` and API contracts.
-- [ ] Ran relevant backend tests.
-- [ ] Ran relevant frontend lint/build/tests.
+- [x] Ran relevant backend tests.
+- [x] Ran relevant frontend lint/build/tests.
 - [ ] Ran PostgreSQL/Redis integration checks where mocks are insufficient.
 - [ ] Reviewed migrations and rollback behavior.
 - [ ] Validated Docker/runtime configuration.
@@ -83,8 +89,10 @@ Add source code and test files to this table when AI materially contributes to t
 - AI output can be incomplete or incorrect and is not treated as test evidence.
 - Suggested security controls require threat-model and integration review.
 - Suggested database indexes require measured PostgreSQL evidence.
-- Initial findings are based primarily on static review; runtime reproduction and regression evidence are still pending.
-- The first backend test attempt was blocked because the system Python environment does not have `pytest` installed.
+- Fixed auth, ownership, partial-update, cache, and frontend-session findings now have automated regression evidence; unresolved findings remain primarily baseline/static or manual observations.
+- The first backend test attempt was blocked because the system Python environment lacked `pytest`; later runs used an isolated `uv` environment and passed 19/19.
+- Backend cache tests use a stateful Redis mock; PostgreSQL/Redis integration and concurrency evidence are still pending.
+- Frontend query/session tests are unit-level; Playwright account-switch coverage is still pending.
 - Candidate review, identity spelling confirmation, and final attestation are pending.
 
 ## 9. Final attestation
