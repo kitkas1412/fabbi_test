@@ -38,7 +38,7 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 |---|---|---|
 | Browser | Playwright 1.63.0 / Chromium 153.0.8010.12 | Suite 3/3 passes; both required Tier 2B journeys complete |
 | Frontend | Host Node 24.17.0 / npm 11.13.0; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 2/2, Playwright 3/3, lint, and production build pass |
-| Backend | Non-root container Python 3.12.14; isolated host Python 3.12.12; `http://localhost:8000` | Regression suite 30/30, Black, and unfiltered Flake8 pass; backend health-gated cold start passes |
+| Backend | Non-root container Python 3.12.14; isolated host Python 3.12.12; `http://localhost:8000` | Regression suite 31/31, Black, and unfiltered Flake8 pass; backend health-gated cold start passes |
 | PostgreSQL | Compose image `postgres:16-alpine` | Running; migration at head; 100 users and 1,000 todos seeded |
 | Redis | Compose image `redis:7-alpine` | Healthy with password authentication; unauthenticated commands are rejected; Journey 1/2 real-cache paths pass |
 | Docker | Docker 29.5.2 / Compose 5.1.4 | Four services healthy; readiness order, non-root app users, and internal-only data ports verified |
@@ -62,7 +62,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 - [x] Required services become healthy on a cold start without a manual restart.
 - [x] Database migrations completed successfully at `d4e6f8a0b2c3 (head)`.
 - [x] Test data resets deterministically through an exact email allowlist before headless/headed/UI runs.
-- [x] Backend automated tests were executed after remediation: 30/30 passed.
+- [x] Backend automated tests were executed after remediation: 31/31 passed.
 - [x] Backend Black and unfiltered Flake8 gates pass on the remediated tree.
 - [x] Frontend query-isolation/session-cleanup unit tests were executed: 2/2 passed.
 - [x] Frontend lint and production build pass; the bundle-size warning remains tracked as `FE-007`.
@@ -96,7 +96,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 | TODO-04 | Authorization | User B cannot delete User A's Todo | Same as above | B deletes X | 404; Todo still exists for A | High / Critical | API regression and Journey 2 confirm DELETE returns 404; owner can still retrieve and view X | Pass (Automated + E2E) |
 | TODO-05 | Update | Toggle completed from true to false | Todo is completed | Submit `completed=false`, reload Todo | Persisted value is false | High / Major | API regression confirms response and subsequent GET persist `false` | Pass (Automated) |
 | TODO-06 | Update | Partial title update preserves description | Todo has title and description | Update only title, then reload | Description is unchanged | High / Major | API regression confirms response and subsequent GET preserve description | Pass (Automated) |
-| TODO-07 | Pagination | Pagination is bounded and deterministic | Multiple Todos, including equal timestamps | Request sequential pages and oversized page | Stable order, no duplicates/omissions, oversized request rejected/capped | Medium / Major | `<actual>` | Not Run |
+| TODO-07 | Pagination | Pagination is bounded and deterministic | Multiple Todos, including equal timestamps | Request sequential pages and `size=101` | Stable order, no duplicates/omissions, oversized request rejected | Medium / Major | Automated `test_todo_list_rejects_page_size_above_maximum` returns 422; multi-page manual check remains | Partial (Automated) |
 | CACHE-01 | Isolation | User cache entries are isolated | A and B own different Todos | A loads list, then B loads list | B sees only B's data | High / Critical | Mock regression passes; Journey 2 confirms B's real-Redis list response and UI exclude A's Todo | Pass (Integration) |
 | CACHE-02 | Query scope | Pagination/filter changes cache identity | Cached list exists | Change page, size, filter, sort | Correct query-specific result is returned | High / Major | Page/size variants return distinct pages; filters/sort are not implemented in current API | Pass for current query contract (Mock) |
 | CACHE-03 | Invalidation | Create/update/delete invalidates stale list | User has cached list | Perform each mutation, reload list | Latest committed data is returned immediately | High / Major | Mock regression passes; Journey 1 observes fresh create/edit/complete/delete state against PostgreSQL and real Redis | Pass (Integration) |

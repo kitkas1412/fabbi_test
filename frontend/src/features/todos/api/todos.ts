@@ -46,7 +46,7 @@ interface DeleteTodoVariables {
 export function useTodos(
   userId: string | undefined,
   page: number = 1,
-  size: number = 10000
+  size: number = 100
 ) {
   return useQuery({
     queryKey: todoKeys.list(userId ?? "anonymous", page, size),

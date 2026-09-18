@@ -63,6 +63,20 @@ async def test_get_todos(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_todo_list_rejects_page_size_above_maximum(client: AsyncClient):
+    """API-001: list requests cannot bypass the bounded page-size contract."""
+    token = await get_auth_token(client, "page-size-limit@example.com")
+
+    response = await client.get(
+        "/api/v1/todos",
+        params={"size": 101},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_get_todos_orders_newest_first(client: AsyncClient):
     """Pagination must have a stable newest-first order."""
     token = await get_auth_token(client, "ordered-list@example.com")

@@ -20,6 +20,7 @@ from app.services.todo_service import (
 router = APIRouter()
 
 CACHE_TTL = 300  # 5 minutes
+MAX_TODO_PAGE_SIZE = 100
 
 
 def todo_cache_version_key(user_id: uuid.UUID) -> str:
@@ -56,7 +57,7 @@ async def commit_todo_mutation(
 @router.get("", response_model=TodoListResponse)
 async def list_todos(
     page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1),
+    size: int = Query(20, ge=1, le=MAX_TODO_PAGE_SIZE),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     redis: RedisClient = Depends(get_redis),
