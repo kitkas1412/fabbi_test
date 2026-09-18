@@ -4,8 +4,10 @@ from datetime import timedelta
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.exc import IntegrityError
 
 from app.core.security import create_access_token
+from app.models.user import User
 
 
 @pytest.mark.asyncio
@@ -20,6 +22,23 @@ async def test_register_success(client: AsyncClient):
     assert "access_token" in data
     assert "refresh_token" in data
     assert data["token_type"] == "bearer"
+
+
+@pytest.mark.asyncio
+async def test_user_email_is_unique_in_database(db_session):
+    """DB-001: the database, not only the API pre-check, rejects duplicates."""
+    db_session.add(
+        User(email="database-unique@example.com", hashed_password="first-password")
+    )
+    await db_session.flush()
+    db_session.add(
+        User(email="database-unique@example.com", hashed_password="second-password")
+    )
+
+    with pytest.raises(IntegrityError):
+        await db_session.flush()
+
+    await db_session.rollback()
 
 
 @pytest.mark.asyncio
