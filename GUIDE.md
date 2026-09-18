@@ -150,7 +150,7 @@ pytest tests/ -v
 
 ### Frontend E2E Tests (Playwright)
 
-Install Chromium once, then run the configured smoke suite headless or headed:
+Install Chromium once, then run the configured suite headless or headed:
 
 ```bash
 cd frontend
@@ -160,10 +160,12 @@ npm run test:e2e
 npm run test:e2e:headed
 ```
 
-Playwright starts Vite at `http://127.0.0.1:3000` automatically. Set
+Playwright starts a dedicated Vite server at `http://127.0.0.1:4173`
+automatically. Set
 `PLAYWRIGHT_BASE_URL=http://localhost:3000` to target an already-running
 frontend. The complete authentication/Todo and cross-user Tier 2B journeys
-still require the backend and deterministic disposable test accounts.
+require the backend and disposable test accounts. Journey 1 covers the complete
+authentication/Todo lifecycle; the cross-user isolation journey remains pending.
 
 ### Database Performance Benchmarking
 To test database indexing and query execution times with 1 million records:

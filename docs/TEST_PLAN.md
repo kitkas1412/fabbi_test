@@ -4,11 +4,11 @@
 
 | Field | Value |
 |---|---|
-| Scope/version | HEAD `24bba4d3df1c79ce09249045127d80c92a1c7ad0` plus pending Playwright setup |
+| Scope/version | HEAD `33bac3fe43bbeb0c67becd8e45d00cd1d119dcae` plus pending Journey 1 worktree |
 | Author | Nguyen Dinh Duc |
-| Test window | `2026-09-18` – automated remediation retest complete; manual/E2E execution pending |
+| Test window | `2026-09-18` – automated remediation and Journey 1 retest complete; manual/Journey 2 execution pending |
 | Environment | macOS 26.6.2; Docker 29.5.2 / Compose 5.1.4; Compose application stack |
-| Overall result | Backend and frontend regression suites pass; manual browser, real Redis, and remaining infrastructure cases are pending |
+| Overall result | Backend/frontend regressions and lifecycle Journey 1 pass; cross-user Journey 2, manual cases, and remaining infrastructure work are pending |
 
 ## 1. Objective
 
@@ -36,20 +36,20 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 
 | Component | Version/configuration | Status |
 |---|---|---|
-| Browser | Playwright 1.63.0 / Chromium 153.0.8010.12 | Login-page smoke test 1/1 passes; full Tier 2B journeys pending |
-| Frontend | Host Node 24.17.0 / npm 11.13.0; `http://localhost:3000` | Unit regressions 2/2, Playwright smoke 1/1, lint, and production build pass |
+| Browser | Playwright 1.63.0 / Chromium 153.0.8010.12 | Suite 2/2 passes; required lifecycle Journey 1 complete and cross-user Journey 2 pending |
+| Frontend | Host Node 24.17.0 / npm 11.13.0; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 2/2, Playwright 2/2, lint, and production build pass |
 | Backend | Container Python 3.12; isolated host Python 3.12.12 test environment; `http://localhost:8000` | Regression suite 19/19, Black, and unfiltered Flake8 pass; Compose baseline still requires a manual backend restart |
 | PostgreSQL | Compose image `postgres:16-alpine` | Running; migration at head; 100 users and 1,000 todos seeded |
 | Redis | Compose image `redis:7` | Running; `PING` returns `PONG` |
 | Docker | Docker 29.5.2 / Compose 5.1.4 | Stack running; cold-start readiness defect reproduced |
 | OS | macOS 26.6.2 (Build 25G83) | Ready |
-| Commit | `24bba4d3df1c79ce09249045127d80c92a1c7ad0` plus pending Playwright setup | Automated remediation and browser smoke retests executed |
+| Commit | `33bac3fe43bbeb0c67becd8e45d00cd1d119dcae` plus pending Journey 1 worktree | Automated remediation and lifecycle browser retests executed |
 
 Required test identities:
 
 | Account | Purpose | Setup method |
 |---|---|---|
-| User A | Owner of private Todo/tag data | Planned API/fixture setup; account not created |
+| User A | Owner of private Todo/tag data | Journey 1 generates a unique disposable registration per run |
 | User B | Cross-user authorization checks | Planned API/fixture setup; account not created |
 | Revoked/deleted user | Token lifecycle checks | Planned fixture; account not created |
 
@@ -65,7 +65,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 - [x] Backend Black and unfiltered Flake8 gates pass on the remediated tree.
 - [x] Frontend query-isolation/session-cleanup unit tests were executed: 2/2 passed.
 - [x] Frontend lint and production build pass; the bundle-size warning remains tracked as `FE-007`.
-- [x] Playwright Chromium is installed and the deterministic login-page smoke test passes: 1/1.
+- [x] Playwright Chromium suite passes 2/2, including required lifecycle Journey 1.
 - [x] No production credentials or data are used in assessment verification; tracked values are development placeholders.
 
 ## 5. Exit criteria
@@ -80,7 +80,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 
 | ID | Area | Scenario | Preconditions | Steps | Expected result | Priority / Severity | Actual result | Status |
 |---|---|---|---|---|---|---|---|---|
-| AUTH-01 | Registration | Register a new valid user | Email is unused | Submit valid registration form | User is created and valid tokens/session are returned | High / Major | `<actual>` | Not Run |
+| AUTH-01 | Registration | Register a new valid user | Email is unused | Submit valid registration form | User is created and valid tokens/session are returned | High / Major | Journey 1 receives 201, reaches the dashboard, and displays the registered email | Pass (E2E) |
 | AUTH-02 | Registration | Register duplicate email concurrently | Email is unused; two clients ready | Submit two registrations at the same time | Exactly one user is created; the other request gets a stable conflict response | High / Critical | `<actual>` | Not Run |
 | AUTH-03 | Login | Invalid email and invalid password do not enumerate users | One known user | Try unknown email, then known email with wrong password | Both produce the same public status/message | High / Security | `<actual>` | Not Run |
 | AUTH-04 | JWT | Expired access token is rejected | Expired token available | Call `/auth/me` and `/todos` | Both return 401 without protected data | High / Critical | Automated regression confirms `/auth/me` returns 401; `/todos` manual check remains | Partial (Automated) |
@@ -88,7 +88,8 @@ Do not record real passwords or tokens in this document. Use disposable local te
 | AUTH-06 | JWT | Refresh token cannot act as access token | Valid refresh token | Call protected Todo endpoint with refresh token | Request returns 401 | High / Critical | Automated regression confirms access-only `/auth/me` rejects the refresh token; Todo endpoint manual check remains | Partial (Automated) |
 | AUTH-07 | Refresh | Refresh token rotates once | Valid refresh token | Refresh, then reuse old token | New pair is issued; old refresh token is rejected | High / Critical | `<actual>` | Not Run |
 | AUTH-08 | Logout | Logout revokes the refresh session | Logged-in user | Logout, then try refresh | Refresh is rejected | High / Critical | `<actual>` | Not Run |
-| TODO-01 | CRUD | Owner completes full Todo lifecycle | User A logged in | Create, read, update, delete a Todo | Every operation succeeds and final read is 404 | High / Major | CRUD API regressions pass; final post-delete read is not asserted in one combined journey | Partial (Automated) |
+| AUTH-09 | Login | Registered user can log in with valid credentials | Journey 1 account exists and is logged out | Submit the registered email/password | Login returns 200 and the dashboard displays the account | High / Major | Journey 1 logs out after registration, logs back in, and reaches the authenticated dashboard | Pass (E2E) |
+| TODO-01 | CRUD | Owner completes full Todo lifecycle | User A logged in | Create, read, update, delete a Todo | Every operation succeeds and final read is 404 | High / Major | Journey 1 creates, edits, completes, and deletes through the UI; a final authenticated GET returns 404 | Pass (E2E) |
 | TODO-02 | Authorization | User B cannot read User A's Todo | User A owns Todo X; User B logged in | B requests `GET /todos/X` | 404 without data disclosure | High / Critical | Cross-user GET returns 404 and owner can still read the unchanged Todo | Pass (Automated) |
 | TODO-03 | Authorization | User B cannot update User A's Todo | Same as above | B updates X | 404; Todo remains unchanged | High / Critical | Cross-user PUT returns 404; owner title and completion state remain unchanged | Pass (Automated) |
 | TODO-04 | Authorization | User B cannot delete User A's Todo | Same as above | B deletes X | 404; Todo still exists for A | High / Critical | Cross-user DELETE returns 404 and owner can still retrieve the Todo | Pass (Automated) |
@@ -97,8 +98,8 @@ Do not record real passwords or tokens in this document. Use disposable local te
 | TODO-07 | Pagination | Pagination is bounded and deterministic | Multiple Todos, including equal timestamps | Request sequential pages and oversized page | Stable order, no duplicates/omissions, oversized request rejected/capped | Medium / Major | `<actual>` | Not Run |
 | CACHE-01 | Isolation | User cache entries are isolated | A and B own different Todos | A loads list, then B loads list | B sees only B's data | High / Critical | Stateful Redis-mock regression confirms each user receives only their own Todo | Pass (Mock) |
 | CACHE-02 | Query scope | Pagination/filter changes cache identity | Cached list exists | Change page, size, filter, sort | Correct query-specific result is returned | High / Major | Page/size variants return distinct pages; filters/sort are not implemented in current API | Pass for current query contract (Mock) |
-| CACHE-03 | Invalidation | Create/update/delete invalidates stale list | User has cached list | Perform each mutation, reload list | Latest committed data is returned immediately | High / Major | Versioned-cache regression observes fresh lists after create/update/delete | Pass (Mock) |
-| FE-01 | Session | Logout clears user-scoped client data | User A has loaded Todos | Logout; log in as B | No A data flashes or remains in cache/UI | High / Critical | Unit regression confirms token and React Query cleanup; full browser account-switch journey pending | Partial (Unit) |
+| CACHE-03 | Invalidation | Create/update/delete invalidates stale list | User has cached list | Perform each mutation, reload list | Latest committed data is returned immediately | High / Major | Mock regression passes; Journey 1 observes fresh create/edit/complete/delete state against PostgreSQL and real Redis | Pass (Integration) |
+| FE-01 | Session | Logout clears user-scoped client data | User A has loaded Todos | Logout; log in as B | No A data flashes or remains in cache/UI | High / Critical | Unit regression passes; Journey 1 confirms both tokens are cleared after logout, while cross-user browser verification remains pending | Partial (Unit + E2E) |
 | FE-02 | Error UX | Invalid login shows error without hard reload | Login page open | Submit wrong credentials | Stable error is shown; form remains usable | Medium / Major | `<actual>` | Not Run |
 | FE-03 | Optimistic UI | Failed update rolls back | Simulate update failure | Toggle/edit Todo | UI restores previous value and reports failure | Medium / Major | `<actual>` | Not Run |
 | FE-04 | Query isolation | Todo query identity includes account and pagination | Query key factory available | Compare keys for different users, pages, and sizes | Every response-changing input produces a distinct key | High / Critical | Node unit regression confirms distinct keys for user, page, and size | Pass (Unit) |
@@ -127,6 +128,7 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | RUN-010 | `2026-09-18` | `d5fa690` | Host Node 24.17.0 / npm 11.13.0 | Nguyen Dinh Duc with Codex assistance | Frontend unit regression, lint, and production build | **Pass with warning**: 2/2 tests, ESLint pass, build pass; bundle remains 521.44 kB | FE-001/002/003; `FE-007` |
 | RUN-011 | `2026-09-18` | `23b039e` + E402 working tree | Isolated Python 3.12.12 / SQLite / stateful Redis mock; Node 24.17.0 / npm 11.13.0 | Nguyen Dinh Duc with Codex assistance | Full backend and frontend quality-gate rerun | **Pass with warnings**: backend 19/19, Black and unfiltered Flake8 pass; frontend 2/2, ESLint and build pass; 3 backend deprecation warnings and the 521.44 kB bundle warning remain | `QUALITY-001` verified; `TEST-003`, `CONFIG-001`, `DEP-002`, and `FE-007` remain open |
 | RUN-012 | `2026-09-18` | `24bba4d` + Playwright working tree | Node 24.17.0 / npm 11.13.0 / Playwright 1.63.0 / Chromium 153.0.8010.12 | Nguyen Dinh Duc with Codex assistance | Playwright installation/configuration and frontend regression | **Pass with warning**: Chromium smoke 1/1, unit tests 2/2, ESLint and build pass; bundle remains 521.44 kB | Browser setup verified; complete user journey and cross-user isolation scenarios remain pending |
+| RUN-013 | `2026-09-18` | `33bac3f` + Journey 1 worktree | Playwright 1.63.0 / Chromium 153.0.8010.12 / Vite 4173 / current Docker backend, PostgreSQL, and Redis | Nguyen Dinh Duc with Codex assistance | Lifecycle Journey 1 plus frontend regression | **Pass with warnings**: Playwright 2/2, unit tests 2/2, ESLint and build pass; dialogs emit accessibility warnings and bundle is 521.53 kB | Register → logout/login → create → edit → complete → delete → GET 404 → logout; Journey 2 pending |
 
 ## 8. Defect log
 
@@ -140,20 +142,20 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | AUTH-06 | AUTH-002 | Refresh tokens could access protected endpoints | Critical | Automated retest passed for `/auth/me`; manual endpoint matrix pending |
 | TODO-02/03/04 | TODO-001 | Todo item operations were not owner-scoped | Critical | Automated retest passed |
 | TODO-05/06 | TODO-002/003 | Partial updates mishandled false and omitted fields | High | Automated retest passed |
-| CACHE-01/02/03 | CACHE-001/002 | Cache leaked across users/queries and served stale mutations | Critical / High | Stateful-mock retest passed; real Redis integration pending |
-| FE-01/04 | FE-001/002 | Client query identity and logout cleanup were not account-safe | High | Unit retest passed; browser E2E pending |
+| CACHE-01/02/03 | CACHE-001/002 | Cache leaked across users/queries and served stale mutations | Critical / High | Stateful-mock retest passed; Journey 1 real-Redis mutation path passed; cross-user real-Redis coverage pending |
+| FE-01/04 | FE-001/002 | Client query identity and logout cleanup were not account-safe | High | Unit retest and Journey 1 logout passed; cross-user browser E2E pending |
 
 ## 9. Known limitations and residual risk
 
 - Backend dependencies are not installed in the default system environment; the latest remediation run used isolated `uv --no-project` execution on Python 3.12.12, matching the project's Python 3.12 target without creating a project `uv.lock`.
 - The stack is currently running, but the backend does not survive a clean cold start reliably without a manual restart.
 - Seed data is suitable for local smoke/benchmark preparation but is randomly generated and is not a deterministic reset fixture.
-- Playwright is configured and its login-page smoke test passes, but the required full user journey and cross-user isolation scenarios still need deterministic disposable account setup and implementation.
+- Playwright lifecycle Journey 1 uses a unique disposable registration and passes; cross-user isolation Journey 2 still needs two-account setup and implementation. Created Todo data is deleted, but registered E2E users remain because the application has no user-deletion endpoint.
 - Existing backend tests use SQLite and a Redis mock, so PostgreSQL/Redis integration coverage must be added separately.
 
 ## 10. Approval
 
 | Role | Name | Decision | Date | Notes |
 |---|---|---|---|---|
-| Author | Nguyen Dinh Duc | Pending | `2026-09-18` | Automated remediation recorded; manual, integration, and E2E execution pending |
+| Author | Nguyen Dinh Duc | Pending | `2026-09-18` | Automated remediation and Journey 1 recorded; manual, dedicated integration, and Journey 2 execution pending |
 | Reviewer | `<name>` | Pending | `<date>` | — |

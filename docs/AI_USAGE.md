@@ -38,6 +38,7 @@ Record material assistance, not every autocomplete event. Group closely related 
 | AI-010 | `2026-09-18` | Evidence synchronization | Update issue status, test results, residual risks, and AI disclosure without marking unexecuted work complete | `docs/BUG_REPORT.md`, `docs/TEST_PLAN.md`, `docs/AI_USAGE.md` | Documentation updated to current commit evidence | Compared against Git history and recorded command output |
 | AI-011 | `2026-09-18` | Backend quality and full verification | Document intentional post-`DATABASE_URL` imports, remove the unused incompatible `uv.lock`, and rerun all backend/frontend gates | `backend/tests/conftest.py`, `backend/uv.lock`, assessment evidence in `docs/` | Scoped E402 fix and lockfile removal accepted; evidence synchronized | Python 3.12.12 backend tests 19/19, Black and unfiltered Flake8 pass; frontend tests 2/2, ESLint and build pass |
 | AI-012 | `2026-09-18` | Playwright setup | Install and configure Playwright with Chromium, Vite web-server lifecycle, CI-safe retries/artifacts, scripts, and a backend-independent smoke test | Frontend dependencies, Playwright config, smoke test, ignore rules, and documentation | Setup accepted into the worktree; required Tier 2B journeys remain pending | Chromium smoke 1/1, unit tests 2/2, ESLint and production build pass |
+| AI-013 | `2026-09-18` | Playwright Journey 1 | Implement the full register/login and Todo lifecycle browser journey with disposable credentials, API-status assertions, stable accessible locators, and post-delete verification | `frontend/e2e/todo-lifecycle.spec.ts`, Todo item accessibility, Playwright port, and assessment evidence | Journey 1 accepted into the worktree; cross-user Journey 2 remains pending | Full Playwright suite 2/2; unit tests 2/2; ESLint/build pass against current Docker backend/PostgreSQL/Redis |
 
 If full prompt logs are required, store sanitized logs under `docs/ai-prompts/` and link them here. Never include secrets, access tokens, personal data, private URLs, or hidden evaluation material.
 
@@ -64,7 +65,8 @@ If full prompt logs are required, store sanitized logs under `docs/ai-prompts/` 
 | `docs/AI_USAGE.md` | Disclosure structure and ongoing assistance log | Candidate confirmation and final sign-off pending | Cross-checked against material assistance, Git history, and recorded verification |
 | Backend auth/Todo/cache source and tests | Regression design and implementation assistance | Candidate review remains required | Python 3.12.12 suite 19/19; Black and unfiltered Flake8 pass; integration limitations documented |
 | Frontend auth/query/session source and tests | Query-key/session design and implementation assistance | Candidate review remains required | Unit tests 2/2, ESLint pass, production build pass |
-| Frontend Playwright setup and smoke test | Dependency/configuration and test scaffolding assistance | Complete user journey and cross-user isolation scenarios pending | Playwright 1.63.0 with Chromium smoke 1/1; headless/headed/UI commands documented |
+| Frontend Playwright setup and smoke test | Dependency/configuration and test scaffolding assistance | Lifecycle Journey 1 complete; cross-user Journey 2 pending | Playwright 1.63.0 suite 2/2; headless/headed/UI commands documented |
+| Frontend Playwright lifecycle Journey 1 | Browser-flow implementation, disposable data, and evidence synchronization | Cross-user Journey 2 and candidate review pending | Registration/login and create/edit/complete/delete/logout pass; final deleted-resource GET returns 404 |
 
 Add source code and test files to this table when AI materially contributes to them.
 
@@ -96,7 +98,7 @@ Add source code and test files to this table when AI materially contributes to t
 - Fixed auth, ownership, partial-update, cache, and frontend-session findings now have automated regression evidence; unresolved findings remain primarily baseline/static or manual observations.
 - The first backend test attempt was blocked because the system Python environment lacked `pytest`; the latest run used isolated `uv --no-project` execution on Python 3.12.12 and passed 19/19 without recreating `uv.lock`.
 - Backend cache tests use a stateful Redis mock; PostgreSQL/Redis integration and concurrency evidence are still pending.
-- Playwright is configured and smoke-tested, but full authentication/Todo and account-switch coverage is still pending.
+- Playwright Journey 1 covers the full authentication/Todo lifecycle; account-switch and cross-user isolation coverage is still pending.
 - Candidate review, identity spelling confirmation, and final attestation are pending.
 
 ## 9. Final attestation

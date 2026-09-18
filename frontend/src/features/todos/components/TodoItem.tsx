@@ -13,7 +13,10 @@ interface TodoItemProps {
 
 export function TodoItem({ todo, onToggle, onEdit, onDelete }: TodoItemProps) {
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group">
+    <div
+      data-testid="todo-item"
+      className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
+    >
       <Checkbox
         id={`todo-${todo.id}`}
         checked={todo.completed}
@@ -41,6 +44,7 @@ export function TodoItem({ todo, onToggle, onEdit, onDelete }: TodoItemProps) {
           variant="ghost"
           size="icon"
           className="h-8 w-8"
+          aria-label={`Edit ${todo.title}`}
           onClick={() => onEdit(todo)}
         >
           <Pencil className="h-3.5 w-3.5" />
@@ -49,6 +53,7 @@ export function TodoItem({ todo, onToggle, onEdit, onDelete }: TodoItemProps) {
           variant="ghost"
           size="icon"
           className="h-8 w-8 text-destructive hover:text-destructive"
+          aria-label={`Delete ${todo.title}`}
           onClick={() => onDelete(todo)}
         >
           <Trash2 className="h-3.5 w-3.5" />
