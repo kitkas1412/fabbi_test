@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { todoKeys } from "../src/features/todos/api/queryKeys.js";
+import { shouldClearSessionForUnauthorized } from "../src/lib/authErrorHandling.js";
 import { clearUserSession } from "../src/lib/sessionCleanup.js";
 
 test("todo list keys are isolated by user and pagination", () => {
@@ -29,4 +30,14 @@ test("clearing a session removes tokens and all cached queries", () => {
 
   assert.deepEqual(removedKeys, ["access_token", "refresh_token"]);
   assert.equal(removeQueriesCalls, 1);
+});
+
+test("login 401 stays with the form while protected requests clear the session", () => {
+  assert.equal(shouldClearSessionForUnauthorized(401, "/auth/login"), false);
+  assert.equal(
+    shouldClearSessionForUnauthorized(401, "/auth/login?next=%2F"),
+    false,
+  );
+  assert.equal(shouldClearSessionForUnauthorized(401, "/todos"), true);
+  assert.equal(shouldClearSessionForUnauthorized(400, "/auth/login"), false);
 });

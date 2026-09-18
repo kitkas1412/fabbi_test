@@ -37,7 +37,7 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 | Component | Version/configuration | Status |
 |---|---|---|
 | Browser | Playwright 1.63.0 / Chromium 153.0.8010.12 | Suite 3/3 passes; both required Tier 2B journeys complete |
-| Frontend | Host Node 24.17.0 / npm 11.13.0; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 2/2, Playwright 3/3, lint, and production build pass |
+| Frontend | Host Node 24.17.0 / npm 11.13.0; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 3/3, Playwright 3/3, lint, and production build pass |
 | Backend | Non-root container Python 3.12.14; isolated host Python 3.12.12; `http://localhost:8000` | Regression suite 31/31, Black, and unfiltered Flake8 pass; backend health-gated cold start passes |
 | PostgreSQL | Compose image `postgres:16-alpine` | Running; migration at head; 100 users and 1,000 todos seeded |
 | Redis | Compose image `redis:7-alpine` | Healthy with password authentication; unauthenticated commands are rejected; Journey 1/2 real-cache paths pass |
@@ -64,7 +64,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 - [x] Test data resets deterministically through an exact email allowlist before headless/headed/UI runs.
 - [x] Backend automated tests were executed after remediation: 31/31 passed.
 - [x] Backend Black and unfiltered Flake8 gates pass on the remediated tree.
-- [x] Frontend query-isolation/session-cleanup unit tests were executed: 2/2 passed.
+- [x] Frontend query-isolation/session-cleanup/auth-401 unit tests were executed: 3/3 passed.
 - [x] Frontend lint and production build pass; the bundle-size warning remains tracked as `FE-007`.
 - [x] Playwright Chromium suite passes 3/3, including both required Tier 2B journeys.
 - [x] No production credentials or data are used in assessment verification; tracked values are development placeholders.
@@ -102,7 +102,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 | CACHE-03 | Invalidation | Create/update/delete invalidates stale list | User has cached list | Perform each mutation, reload list | Latest committed data is returned immediately | High / Major | Mock regression passes; Journey 1 observes fresh create/edit/complete/delete state against PostgreSQL and real Redis | Pass (Integration) |
 | CACHE-04 | Transaction | Cache invalidation is commit-coordinated | Cache version and transaction boundary available | Force commit failure, then exercise a successful mutation boundary | Failed transaction rolls back without Redis change; successful path commits before Redis `incr` | High / Major | `test_failed_todo_commit_does_not_invalidate_cache` and `test_todo_cache_invalidation_follows_successful_commit` cover both paths | Pass (Automated) |
 | FE-01 | Session | Logout clears user-scoped client data | User A has loaded Todos | Logout; log in as B | No A data flashes or remains in cache/UI | High / Critical | Unit regression and Journey 1 logout pass; Journey 2 confirms separate-session isolation, while same-context A-to-B switching remains unit-only | Partial (Unit + E2E) |
-| FE-02 | Error UX | Invalid login shows error without hard reload | Login page open | Submit wrong credentials | Stable error is shown; form remains usable | Medium / Major | `<actual>` | Not Run |
+| FE-02 | Error UX | Invalid login shows error without hard reload | Login page open | Submit wrong credentials | Stable error is shown; form remains usable | Medium / Major | Node regression confirms the global 401 handler leaves `/auth/login` responses for the form, while it still clears sessions for protected requests | Pass (Unit) |
 | FE-03 | Optimistic UI | Failed update rolls back | Simulate update failure | Toggle/edit Todo | UI restores previous value and reports failure | Medium / Major | `<actual>` | Not Run |
 | FE-04 | Query isolation | Todo query identity includes account and pagination | Query key factory available | Compare keys for different users, pages, and sizes | Every response-changing input produces a distinct key | High / Critical | Node unit regression confirms distinct keys for user, page, and size | Pass (Unit) |
 | INFRA-01 | Startup | Clean Docker cold start is dependable | Services stopped; environment configured | Run `docker compose up -d --build --wait` | Dependencies become healthy and backend starts without race failure | High / Major | Health order observed: PostgreSQL/Redis → backend → frontend; all services healthy without restart | Pass (Integration) |
