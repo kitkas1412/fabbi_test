@@ -36,6 +36,7 @@ Record material assistance, not every autocomplete event. Group closely related 
 | AI-008 | `2026-09-18` | Backend remediation | Fix JWT validation, owner-scoped Todo access, partial updates, and versioned user/query cache behavior | Backend security, dependencies, Todo routes/services, Redis wrapper | Changes accepted as atomic remediation commits | Targeted regressions, full pytest, Black, and scoped Flake8 checks |
 | AI-009 | `2026-09-18` | Frontend remediation | Scope Todo query keys, clear session cache on logout/account change/401, and restore optimistic snapshots | Frontend auth, API client, Todo hooks/components, unit-test setup | Changes accepted and committed | `npm test` 2/2, `npm run lint`, and `npm run build` pass |
 | AI-010 | `2026-09-18` | Evidence synchronization | Update issue status, test results, residual risks, and AI disclosure without marking unexecuted work complete | `docs/BUG_REPORT.md`, `docs/TEST_PLAN.md`, `docs/AI_USAGE.md` | Documentation updated to current commit evidence | Compared against Git history and recorded command output |
+| AI-011 | `2026-09-18` | Backend quality and full verification | Document intentional post-`DATABASE_URL` imports, remove the unused incompatible `uv.lock`, and rerun all backend/frontend gates | `backend/tests/conftest.py`, `backend/uv.lock`, assessment evidence in `docs/` | Scoped E402 fix and lockfile removal accepted; evidence synchronized | Python 3.12.12 backend tests 19/19, Black and unfiltered Flake8 pass; frontend tests 2/2, ESLint and build pass |
 
 If full prompt logs are required, store sanitized logs under `docs/ai-prompts/` and link them here. Never include secrets, access tokens, personal data, private URLs, or hidden evaluation material.
 
@@ -47,6 +48,7 @@ If full prompt logs are required, store sanitized logs under `docs/ai-prompts/` 
 | Target the maximum 115/100 score | Mapped 100 mandatory points plus 15 Tier 4 bonus points | Adopted for planning; mandatory gates must pass before bonus work | README traceability matrix |
 | Keep Todo Sharing as specification-only work | Flagged README's explicit instruction not to implement Task 3A | Adopted to prevent scope expansion | `docs/TODO_SHARING_SPEC.md` |
 | Track assessment documents while keeping the answer key ignored | Identified the conflict between required `docs/` deliverables and the root ignore rule | Adopted; removed broad `docs/` ignore and retained `docs/ANSWER_KEY.md` | `git check-ignore` verification |
+| Keep backend dependencies managed by `requirements.txt` | Identified that the three-line `uv.lock` was generated incidentally, targeted Python 3.13, and was not used by Docker or setup instructions | Adopted; removed the lockfile in standalone commit `23b039e` and used `uv --no-project` only as an isolated test runner | Docker targets Python 3.12; Black targets `py312`; full backend rerun passes on Python 3.12.12 |
 
 ## 5. Generated or substantially assisted artefacts
 
@@ -59,7 +61,7 @@ If full prompt logs are required, store sanitized logs under `docs/ai-prompts/` 
 | `docs/TODO_SHARING_SPEC.md` | Specification skeleton | Product/security/backend decisions pending | Structure compared with README and provided template |
 | `docs/PERFORMANCE_REPORT.md` | Benchmark-report structure | Measured PostgreSQL data pending | No performance conclusion has been claimed |
 | `docs/AI_USAGE.md` | Disclosure structure and ongoing assistance log | Candidate confirmation and final sign-off pending | Cross-checked against material assistance, Git history, and recorded verification |
-| Backend auth/Todo/cache source and tests | Regression design and implementation assistance | Candidate review remains required | Full backend suite 19/19; Black passes; remaining test-environment limitations documented |
+| Backend auth/Todo/cache source and tests | Regression design and implementation assistance | Candidate review remains required | Python 3.12.12 suite 19/19; Black and unfiltered Flake8 pass; integration limitations documented |
 | Frontend auth/query/session source and tests | Query-key/session design and implementation assistance | Candidate review remains required | Unit tests 2/2, ESLint pass, production build pass |
 
 Add source code and test files to this table when AI materially contributes to them.
@@ -90,7 +92,7 @@ Add source code and test files to this table when AI materially contributes to t
 - Suggested security controls require threat-model and integration review.
 - Suggested database indexes require measured PostgreSQL evidence.
 - Fixed auth, ownership, partial-update, cache, and frontend-session findings now have automated regression evidence; unresolved findings remain primarily baseline/static or manual observations.
-- The first backend test attempt was blocked because the system Python environment lacked `pytest`; later runs used an isolated `uv` environment and passed 19/19.
+- The first backend test attempt was blocked because the system Python environment lacked `pytest`; the latest run used isolated `uv --no-project` execution on Python 3.12.12 and passed 19/19 without recreating `uv.lock`.
 - Backend cache tests use a stateful Redis mock; PostgreSQL/Redis integration and concurrency evidence are still pending.
 - Frontend query/session tests are unit-level; Playwright account-switch coverage is still pending.
 - Candidate review, identity spelling confirmation, and final attestation are pending.

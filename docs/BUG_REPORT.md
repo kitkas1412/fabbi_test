@@ -7,7 +7,7 @@
 | Assessment branch | `assessment/nguyen-dinh-duc` |
 | Author | Nguyen Dinh Duc |
 | Review date | `2026-09-18` |
-| Application version/commit | `d5fa69053fde87d879c751126af031441055073b` |
+| Application version/commit | `23b039ee80f8d555c6d378e63727c03c07682ac8` plus pending E402 working-tree fix |
 | Overall status | Core auth, Todo isolation/update/cache, and frontend session remediations implemented; remaining findings are tracked below |
 
 ## Purpose
@@ -64,7 +64,7 @@ No Critical or High issue may remain Deferred for final submission.
 | CONFIG-001 | Backend compatibility | Pydantic class-based `Config` is deprecated before Pydantic v3 | Low | `backend/app/core/config.py` | Open | — | `pytest tests/ -v` emits `PydanticDeprecatedSince20` |
 | DEP-001 | Frontend security | Production dependency tree contains 6 known vulnerabilities | High | `frontend/package-lock.json` | Open | — | `npm audit --omit=dev`: 5 High, 1 Moderate; direct packages include `axios@1.17.0` and `react-router-dom@7.17.0`; fixes are available and exploitability still requires triage |
 | DEP-002 | Backend compatibility | Passlib/bcrypt stack emits an internal version lookup error during password hashing | Medium | `backend/requirements.txt`, `backend/app/db/seed.py` | Open | — | Seed succeeds but logs `AttributeError: module 'bcrypt' has no attribute '__about__'` with `passlib==1.7.4` and `bcrypt==4.3.0`; pytest also warns about deprecated `crypt` usage |
-| QUALITY-001 | Backend quality | Required backend Black and Flake8 gates fail | Low | `backend/tests/conftest.py` | Open | — | Black now passes; unmodified module-order setup still requires five scoped `E402` suppressions or a test bootstrap refactor for unfiltered Flake8 |
+| QUALITY-001 | Backend quality | Required backend Black and Flake8 gates failed | Low | `backend/tests/conftest.py` | Verified | Pending commit | The five intentionally delayed imports document the database bootstrap requirement and use scoped `# noqa: E402`; `black --check .` and unfiltered `flake8 app tests` pass |
 | FE-007 | Frontend performance | Production JavaScript bundle exceeds Vite's 500 kB warning threshold | Medium | Frontend production bundle | Open | — | `npm run build`: main JS is 521.44 kB (163.02 kB gzip); Vite recommends code splitting/manual chunks |
 | DOC-001 | Deliverables | `docs/` was ignored despite required assessment documents | Medium | `.gitignore` | Verified | `3d1936b` | Deliverables are tracked while `docs/ANSWER_KEY.md` remains ignored |
 
@@ -118,8 +118,8 @@ Copy this section once per finding or link the register row to the corresponding
 |---|---|---|---|---|---|
 | Compose validation | `docker compose config -q` | Pass | Pass (exit 0) | `2026-09-18` | Rendered Compose configuration is valid |
 | Backend tests | `docker compose exec -T backend pytest tests/ -v` | Pass | Pass: 9 collected, 9 passed in 1.86s; 3 deprecation warnings | `2026-09-18` | Warnings linked to `TEST-003`, `CONFIG-001`, and `DEP-002` |
-| Backend regression suite | `uv run --isolated --with-requirements requirements.txt pytest tests/ -v` | Pass | Pass: 19 collected, 19 passed; 2 warning groups | `2026-09-18` | Covers AUTH-001/002, TODO-001/002/003, CACHE-001/002 |
-| Backend format/lint | `black --check .`; scoped `flake8` checks | Pass | Black passes for all 28 Python files; changed app/tests pass Flake8 when existing `conftest.py` `E402` findings are excluded | `2026-09-18` | Unfiltered `flake8 app tests` remains tracked as `QUALITY-001` |
+| Backend regression suite | `uv run --python 3.12 --isolated --no-project --with-requirements requirements.txt pytest tests/ -v` | Pass | Pass on Python 3.12.12: 19 collected, 19 passed; 3 deprecation warning groups | `2026-09-18` | Covers AUTH-001/002, TODO-001/002/003, CACHE-001/002; SQLite and stateful Redis mock only |
+| Backend format/lint | `black --check .`; `flake8 app tests` | Pass | Black passes for all 28 Python files; unfiltered Flake8 completes without findings | `2026-09-18` | `QUALITY-001` verified after five documented, scoped `E402` suppressions |
 | Backend dependencies | `docker compose exec -T backend pip check` | Pass | Pass: no broken requirements found | `2026-09-18` | Command exit 0; runtime warning remains tracked as `DEP-002` |
 | Frontend install | `cd frontend && npm ci` | Pass | Pass: 287 packages installed/audited | `2026-09-18` | Command exit 0 |
 | Frontend lint | `cd frontend && npm run lint` | Pass | Pass (exit 0) | `2026-09-18` | ESLint completed without findings |

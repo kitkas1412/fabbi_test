@@ -7,15 +7,16 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-# Use SQLite for tests before app modules initialize their default engine.
+# Set the test database before importing app modules because app.db.session creates
+# its engine at import time. These imports are intentionally delayed (E402).
 TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 
-from app.api.deps import get_redis
-from app.core.security import create_access_token
-from app.db.base import Base
-from app.db.session import get_db
-from app.main import app
+from app.api.deps import get_redis  # noqa: E402
+from app.core.security import create_access_token  # noqa: E402
+from app.db.base import Base  # noqa: E402
+from app.db.session import get_db  # noqa: E402
+from app.main import app  # noqa: E402
 
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 test_session_maker = async_sessionmaker(

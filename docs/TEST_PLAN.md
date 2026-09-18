@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Scope/version | Remediation commit `d5fa69053fde87d879c751126af031441055073b` |
+| Scope/version | HEAD `23b039ee80f8d555c6d378e63727c03c07682ac8` plus pending E402 working-tree fix |
 | Author | Nguyen Dinh Duc |
 | Test window | `2026-09-18` – automated remediation retest complete; manual/E2E execution pending |
 | Environment | macOS 26.6.2; Docker 29.5.2 / Compose 5.1.4; Compose application stack |
@@ -38,12 +38,12 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 |---|---|---|
 | Browser | HTTP smoke only; interactive browser not selected | Manual UI cases Not Ready |
 | Frontend | Host Node 24.17.0 / npm 11.13.0; `http://localhost:3000` | Unit regressions 2/2, lint, and production build pass |
-| Backend | Container Python 3.12; isolated host Python 3.13.12 test environment; `http://localhost:8000` | Regression suite 19/19 passes; Compose baseline still requires a manual backend restart |
+| Backend | Container Python 3.12; isolated host Python 3.12.12 test environment; `http://localhost:8000` | Regression suite 19/19, Black, and unfiltered Flake8 pass; Compose baseline still requires a manual backend restart |
 | PostgreSQL | Compose image `postgres:16-alpine` | Running; migration at head; 100 users and 1,000 todos seeded |
 | Redis | Compose image `redis:7` | Running; `PING` returns `PONG` |
 | Docker | Docker 29.5.2 / Compose 5.1.4 | Stack running; cold-start readiness defect reproduced |
 | OS | macOS 26.6.2 (Build 25G83) | Ready |
-| Commit | `d5fa69053fde87d879c751126af031441055073b` | Automated remediation retest executed |
+| Commit | `23b039ee80f8d555c6d378e63727c03c07682ac8` plus pending E402 working-tree fix | Automated remediation retest executed |
 
 Required test identities:
 
@@ -62,7 +62,9 @@ Do not record real passwords or tokens in this document. Use disposable local te
 - [x] Database migrations completed successfully at `a0790c76a129 (head)`.
 - [ ] Test data can be reset deterministically.
 - [x] Backend automated tests were executed after remediation: 19/19 passed.
+- [x] Backend Black and unfiltered Flake8 gates pass on the remediated tree.
 - [x] Frontend query-isolation/session-cleanup unit tests were executed: 2/2 passed.
+- [x] Frontend lint and production build pass; the bundle-size warning remains tracked as `FE-007`.
 - [x] No production credentials or data are used in assessment verification; tracked values are development placeholders.
 
 ## 5. Exit criteria
@@ -122,6 +124,7 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | RUN-008 | `2026-09-18 12:20 +07:00` | `3d1936b` | Compose containers | Nguyen Dinh Duc with Codex assistance | Container privilege and exposed-port check | **Fail**: backend/frontend run as root; PostgreSQL/Redis published on all host interfaces | `INFRA-003`, `INFRA-004` |
 | RUN-009 | `2026-09-18` | `5816658` | Isolated host Python 3.13.12 / SQLite / stateful Redis mock | Nguyen Dinh Duc with Codex assistance | Full backend remediation regression | **Pass with warnings**: 19/19 passed; Pydantic config and custom event-loop warnings remain | AUTH-001/002, TODO-001/002/003, CACHE-001/002 |
 | RUN-010 | `2026-09-18` | `d5fa690` | Host Node 24.17.0 / npm 11.13.0 | Nguyen Dinh Duc with Codex assistance | Frontend unit regression, lint, and production build | **Pass with warning**: 2/2 tests, ESLint pass, build pass; bundle remains 521.44 kB | FE-001/002/003; `FE-007` |
+| RUN-011 | `2026-09-18` | `23b039e` + E402 working tree | Isolated Python 3.12.12 / SQLite / stateful Redis mock; Node 24.17.0 / npm 11.13.0 | Nguyen Dinh Duc with Codex assistance | Full backend and frontend quality-gate rerun | **Pass with warnings**: backend 19/19, Black and unfiltered Flake8 pass; frontend 2/2, ESLint and build pass; 3 backend deprecation warnings and the 521.44 kB bundle warning remain | `QUALITY-001` verified; `TEST-003`, `CONFIG-001`, `DEP-002`, and `FE-007` remain open |
 
 ## 8. Defect log
 
@@ -140,7 +143,7 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 
 ## 9. Known limitations and residual risk
 
-- Backend dependencies are not installed in the default system environment; remediation tests use an isolated `uv` Python 3.13.12 environment while production targets Python 3.12.
+- Backend dependencies are not installed in the default system environment; the latest remediation run used isolated `uv --no-project` execution on Python 3.12.12, matching the project's Python 3.12 target without creating a project `uv.lock`.
 - The stack is currently running, but the backend does not survive a clean cold start reliably without a manual restart.
 - Seed data is suitable for local smoke/benchmark preparation but is randomly generated and is not a deterministic reset fixture.
 - Two frontend unit regressions are configured with TypeScript and Node's built-in test runner; Playwright and component/browser tests remain unconfigured.
