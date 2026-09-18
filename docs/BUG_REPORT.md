@@ -43,9 +43,9 @@ No Critical or High issue may remain Deferred for final submission.
 | CACHE-002 | Consistency | Todo mutations do not invalidate list cache | High | `backend/app/api/v1/todos.py` | Verified | `5816658` | Mock regression passes; Playwright Journey 1 also observes fresh create/edit/complete/delete state against PostgreSQL and real Redis |
 | CACHE-003 | Transactions | Cache invalidation is not coordinated with DB commit | High | Todo mutation transaction boundary | Open | — | `<test/evidence>` |
 | DB-001 | Integrity | Email uniqueness is not enforced by the database | High | User model and Alembic migrations | Open | — | `<test/evidence>` |
-| DB-002 | Pagination | Todo queries have no deterministic ordering | Medium | `backend/app/services/todo_service.py::get_todos` | Open | — | `<test/evidence>` |
+| DB-002 | Pagination | Todo queries have no deterministic ordering | Medium | `backend/app/services/todo_service.py::get_todos` | Verified | Pending commit | Newest-first `created_at, id` order and `test_get_todos_orders_newest_first`; 23/23 backend tests pass |
 | DB-003 | Performance | Todo list performs an additional user query per row | Medium | `backend/app/api/v1/todos.py::list_todos` | Open | — | `<test/evidence>` |
-| DB-004 | Performance | Core Todo queries lack a measured composite-index strategy | Medium | `todos` table migrations | Open | — | `<benchmark>` |
+| DB-004 | Performance | Core Todo queries lack a measured composite-index strategy | Medium | `todos` table migrations | Verified | Pending commit | PostgreSQL 16.15, 1M Todo before/after evidence in `docs/PERFORMANCE_REPORT.md`; Q1/Q2 medians improve 397.2×/322.4× |
 | API-001 | Resource control | Todo page size has no upper bound | Medium | `backend/app/api/v1/todos.py::list_todos` | Open | — | `<test/evidence>` |
 | FE-001 | Data isolation | Todo React Query key omits user and pagination context | High | `frontend/src/features/todos/api/todos.ts` | Fixed | `d5fa690` | Node regression test confirms keys differ by user, page, and size; lint/build pass |
 | FE-002 | Session | Logout/account change does not clear user-scoped query data | High | Auth hooks and query client | Fixed | `d5fa690` | Unit regression confirms token/query cleanup; Journey 1 confirms browser logout cleanup and Journey 2 confirms isolated sessions; same-context account switching remains unit-only |
@@ -109,7 +109,7 @@ Copy this section once per finding or link the register row to the corresponding
 | Tier 2C: manual test plan | `docs/TEST_PLAN.md` | Matrix and automated evidence updated; manual execution pending | In Progress |
 | Tier 3A: Todo Sharing specification only | `docs/TODO_SHARING_SPEC.md` | Draft structure created; specification decisions pending | In Progress |
 | Tier 3B: at least three infrastructure improvements | Compose/Docker changes | Healthy cold start; non-root UIDs; authenticated/internal-only data services; scoped build contexts | Complete (5 improvements) |
-| Tier 3C: query analysis, migration, benchmark, tradeoffs | Migration and `docs/PERFORMANCE_REPORT.md` | `<plans/results>` | Not Started |
+| Tier 3C: query analysis, migration, benchmark, tradeoffs | Migration and `docs/PERFORMANCE_REPORT.md` | PostgreSQL 16.15; 10k users/1M Todos; raw plans/timings; concurrent index migration and rollback evidence | Complete |
 | Git workflow and PR submission | Atomic Conventional Commits and final PR | `<git log/PR>` | In Progress |
 | AI disclosure | `docs/AI_USAGE.md` | Assistance log updated through backend/frontend remediation | In Progress |
 | Tier 4 bonus | Tags, filters, bulk actions and tests | `<PR/test report>` | Not Started |
@@ -119,7 +119,7 @@ Copy this section once per finding or link the register row to the corresponding
 | Check | Command/environment | Expected | Actual | Date | Evidence |
 |---|---|---|---|---|---|
 | Compose validation | `docker compose --env-file .env.example config -q` | Pass | Pass (exit 0) | `2026-09-18` | Required secret variables resolve from the documented template; rendered Compose is valid |
-| Backend tests | `docker compose exec -T backend pytest tests/ -v` | Pass | Pass in non-root Python 3.12.14 container: 22/22 in 4.51s; 3 deprecation warnings | `2026-09-18` | Includes three required-secret regressions; warnings linked to `TEST-003`, `CONFIG-001`, and `DEP-002` |
+| Backend tests | `docker compose exec -T backend pytest tests/ -v` | Pass | Pass in non-root Python 3.12.14 container: 23/23 in 4.69s; 3 deprecation warnings | `2026-09-18` | Includes required-secret and deterministic-order regressions; warnings linked to `TEST-003`, `CONFIG-001`, and `DEP-002` |
 | Backend regression suite | `uv run --python 3.12 --isolated --no-project --with-requirements requirements.txt pytest tests/ -v` | Pass | Pass on Python 3.12.12: 19 collected, 19 passed; 3 deprecation warning groups | `2026-09-18` | Covers AUTH-001/002, TODO-001/002/003, CACHE-001/002; SQLite and stateful Redis mock only |
 | Backend format/lint | `black --check .`; `flake8 app tests` | Pass | Black passes for all 28 Python files; unfiltered Flake8 completes without findings | `2026-09-18` | `QUALITY-001` verified after five documented, scoped `E402` suppressions |
 | Backend dependencies | `docker compose exec -T backend pip check` | Pass | Pass: no broken requirements found | `2026-09-18` | Command exit 0; runtime warning remains tracked as `DEP-002` |
@@ -135,7 +135,7 @@ Copy this section once per finding or link the register row to the corresponding
 | Docker cold start | `docker compose up -d --build --wait` | All services start reliably | Pass: PostgreSQL/Redis became healthy before backend; frontend started after backend became healthy | `2026-09-18` | `INFRA-001` verified without a manual restart |
 | Migration upgrade/downgrade | `alembic upgrade head`; `alembic current` against PostgreSQL | Pass | Upgrade/current pass at `a0790c76a129 (head)`; downgrade intentionally not run against seeded baseline | `2026-09-18` | Migration was applied during backend startup |
 | Container hardening | `docker compose exec -T {backend,frontend} id`; `docker compose ps`; Redis auth probes | Non-root; authenticated data services not host-published | Pass: app UIDs are 999/1000; DB/cache expose no host bindings; unauthenticated Redis returns `NOAUTH` and authenticated ping succeeds | `2026-09-18` | `INFRA-002`–`INFRA-005` verified |
-| Performance benchmark | See `docs/PERFORMANCE_REPORT.md` | Improvement documented | Not run | `2026-09-18` | Benchmark environment pending |
+| Performance benchmark | See `docs/PERFORMANCE_REPORT.md` | PostgreSQL evidence, migration, plans, timings, tradeoffs | Pass: 10k users/1M Todos; Q1 median 22.245→0.056 ms and Q2 20.471→0.064 ms; index is 56 MB; concurrent upgrade/downgrade/re-upgrade pass | `2026-09-18` | `DB-002`, `DB-004`; no SQLite evidence used |
 
 ## Residual risks and accepted limitations
 

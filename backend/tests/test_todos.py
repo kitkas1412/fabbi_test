@@ -57,6 +57,31 @@ async def test_get_todos(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_get_todos_orders_newest_first(client: AsyncClient):
+    """Pagination must have a stable newest-first order."""
+    token = await get_auth_token(client, "ordered-list@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    first = await client.post(
+        "/api/v1/todos",
+        json={"title": "Older todo"},
+        headers=headers,
+    )
+    second = await client.post(
+        "/api/v1/todos",
+        json={"title": "Newer todo"},
+        headers=headers,
+    )
+    response = await client.get("/api/v1/todos", headers=headers)
+
+    assert response.status_code == 200
+    assert [item["id"] for item in response.json()["items"]] == [
+        second.json()["id"],
+        first.json()["id"],
+    ]
+
+
+@pytest.mark.asyncio
 async def test_update_todo(client: AsyncClient):
     """Test updating a todo."""
     token = await get_auth_token(client, "update@example.com")
