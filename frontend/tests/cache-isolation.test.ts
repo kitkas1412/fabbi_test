@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -18,6 +19,16 @@ test("todo list keys are isolated by user and pagination", () => {
 
 test("default Todo page size is bounded by the API limit", () => {
   assert.equal(DEFAULT_TODO_PAGE_SIZE, 100);
+});
+
+test("Todo rows use their stable entity ID as the React key", () => {
+  const todoListSource = readFileSync(
+    "src/features/todos/components/TodoList.tsx",
+    "utf8",
+  );
+
+  assert.match(todoListSource, /key=\{todo\.id\}/);
+  assert.doesNotMatch(todoListSource, /key=\{index\}/);
 });
 
 test("clearing a session removes tokens and all cached queries", () => {
