@@ -38,7 +38,7 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 |---|---|---|
 | Browser | Playwright 1.63.0 / Chromium 153.0.8010.12 | Suite 3/3 passes; both required Tier 2B journeys complete |
 | Frontend | Host Node 24.17.0 / npm 11.13.0; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 5/5, Playwright 3/3, lint, and production build pass |
-| Backend | Non-root container Python 3.12.14; isolated host Python 3.12.12; `http://localhost:8000` | Regression suite 31/31, Black, and unfiltered Flake8 pass; backend health-gated cold start passes |
+| Backend | Non-root container Python 3.12.14; isolated host Python 3.12.12; `http://localhost:8000` | Fast regression suite 31/31 plus PostgreSQL/Redis integration 2/2; Black and unfiltered Flake8 pass; backend health-gated cold start passes |
 | PostgreSQL | Compose image `postgres:16-alpine` | Running; migration at head; 100 users and 1,000 todos seeded |
 | Redis | Compose image `redis:7-alpine` | Healthy with password authentication; unauthenticated commands are rejected; Journey 1/2 real-cache paths pass |
 | Docker | Docker 29.5.2 / Compose 5.1.4 | Four services healthy; readiness order, non-root app users, and internal-only data ports verified |
@@ -63,6 +63,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 - [x] Database migrations completed successfully at `d4e6f8a0b2c3 (head)`.
 - [x] Test data resets deterministically through an exact email allowlist before headless/headed/UI runs.
 - [x] Backend automated tests were executed after remediation: 31/31 passed.
+- [x] PostgreSQL/Redis integration tests were executed after remediation: 2/2 passed.
 - [x] Backend Black and unfiltered Flake8 gates pass on the remediated tree.
 - [x] Frontend query-isolation/session-cleanup/auth-401/page-size/row-key unit tests were executed: 5/5 passed.
 - [x] Frontend lint and production build pass; the bundle-size warning remains tracked as `FE-007`.
@@ -97,9 +98,9 @@ Do not record real passwords or tokens in this document. Use disposable local te
 | TODO-05 | Update | Toggle completed from true to false | Todo is completed | Submit `completed=false`, reload Todo | Persisted value is false | High / Major | API regression confirms response and subsequent GET persist `false` | Pass (Automated) |
 | TODO-06 | Update | Partial title update preserves description | Todo has title and description | Update only title, then reload | Description is unchanged | High / Major | API regression confirms response and subsequent GET preserve description | Pass (Automated) |
 | TODO-07 | Pagination | Pagination is bounded and deterministic | Multiple Todos, including equal timestamps | Request sequential pages and `size=101` | Stable order, no duplicates/omissions, oversized request rejected | Medium / Major | Automated `test_todo_list_rejects_page_size_above_maximum` returns 422; multi-page manual check remains | Partial (Automated) |
-| CACHE-01 | Isolation | User cache entries are isolated | A and B own different Todos | A loads list, then B loads list | B sees only B's data | High / Critical | Mock regression passes; Journey 2 confirms B's real-Redis list response and UI exclude A's Todo | Pass (Integration) |
+| CACHE-01 | Isolation | User cache entries are isolated | A and B own different Todos | A loads list, then B loads list | B sees only B's data | High / Critical | Compose integration verifies distinct user-key namespaces in authenticated Redis; Journey 2 confirms B's real-Redis list response and UI exclude A's Todo | Pass (Integration) |
 | CACHE-02 | Query scope | Pagination/filter changes cache identity | Cached list exists | Change page, size, filter, sort | Correct query-specific result is returned | High / Major | Page/size variants return distinct pages; filters/sort are not implemented in current API | Pass for current query contract (Mock) |
-| CACHE-03 | Invalidation | Create/update/delete invalidates stale list | User has cached list | Perform each mutation, reload list | Latest committed data is returned immediately | High / Major | Mock regression passes; Journey 1 observes fresh create/edit/complete/delete state against PostgreSQL and real Redis | Pass (Integration) |
+| CACHE-03 | Invalidation | Create/update/delete invalidates stale list | User has cached list | Perform each mutation, reload list | Latest committed data is returned immediately | High / Major | Compose integration confirms an update increments the real Redis version and returns fresh PostgreSQL state; Journey 1 covers full mutation lifecycle | Pass (Integration) |
 | CACHE-04 | Transaction | Cache invalidation is commit-coordinated | Cache version and transaction boundary available | Force commit failure, then exercise a successful mutation boundary | Failed transaction rolls back without Redis change; successful path commits before Redis `incr` | High / Major | `test_failed_todo_commit_does_not_invalidate_cache` and `test_todo_cache_invalidation_follows_successful_commit` cover both paths | Pass (Automated) |
 | FE-01 | Session | Logout clears user-scoped client data | User A has loaded Todos | Logout; log in as B | No A data flashes or remains in cache/UI | High / Critical | Unit regression and Journey 1 logout pass; Journey 2 confirms separate-session isolation, while same-context A-to-B switching remains unit-only | Partial (Unit + E2E) |
 | FE-02 | Error UX | Invalid login shows error without hard reload | Login page open | Submit wrong credentials | Stable error is shown; form remains usable | Medium / Major | Node regression confirms the global 401 handler leaves `/auth/login` responses for the form, while it still clears sessions for protected requests | Pass (Unit) |
@@ -138,6 +139,7 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | RUN-016 | `2026-09-18` | `cba9e0d` + infrastructure worktree | Docker 29.5.2 / Compose 5.1.4; Python 3.12.14; Node 20 image | Nguyen Dinh Duc with Codex assistance | Tier 3B build, cold start, privilege, network/auth, and regression checks | **Pass with warnings**: all services healthy in dependency order; non-root UIDs; internal-only DB/cache ports; Redis rejects no-auth; backend 22/22, Black/Flake8, frontend 2/2/lint/build pass; existing bundle/deprecation warnings remain | `AUTH-005`, `INFRA-001`–`INFRA-005` verified; first container pytest exposed and led to fixing working-directory/cache ownership |
 | RUN-017 | `2026-09-18` | `de88674` + database-performance worktree | PostgreSQL 16.15 / Docker Desktop; 10 CPUs / ~7.75 GiB; isolated `fabbi_performance` database | Nguyen Dinh Duc with Codex assistance | Tier 3C baseline/index/retest and backend regression | **Pass with warnings**: 10k users/1M Todos; Q1 median 22.245→0.056 ms and Q2 20.471→0.064 ms; migration concurrent upgrade/downgrade/re-upgrade passes; backend 23/23, Black, Flake8 pass; existing deprecation warnings remain | Raw plans, all timing samples, index size, migration safety, and limitations in `docs/PERFORMANCE_REPORT.md`; `DB-003` remains open |
 | RUN-018 | `2026-09-18` | AUTH-003 working tree | Fresh non-root Docker Python 3.12.14 image; Redis 7 Compose service | Nguyen Dinh Duc with Codex assistance | Refresh rotation, logout revocation, full backend quality gates, and real-Redis Lua smoke | **Pass with warnings**: 25/25 pytest, Black, and Flake8 pass; Redis proves one-time rotation and rejects refresh after logout; 3 known deprecation warnings remain | `test_refresh_token_rotation_rejects_replay`; `test_logout_revokes_access_and_refresh_session`; AUTH-003 verified |
+| RUN-019 | `2026-09-18` | TEST-002 working tree | Fresh non-root Docker Python 3.12.14 image; PostgreSQL 16 and authenticated Redis 7 Compose services | Nguyen Dinh Duc with Codex assistance | Dedicated production-fidelity integration suite | **Pass with warnings**: 2/2 integration tests, Black across 33 files, Flake8 across app/fast/integration tests, and fast suite 31/31 pass; Pydantic, passlib, pytest-asyncio, and Redis-close deprecation warnings remain | Cache namespaces are distinct per user, mutation versioning refreshes PostgreSQL state, and two simultaneous refreshes yield exactly one 200 and one 401 |
 
 ## 8. Defect log
 
@@ -151,7 +153,7 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | AUTH-06 | AUTH-002 | Refresh tokens could access protected endpoints | Critical | Automated retest passed for `/auth/me`; manual endpoint matrix pending |
 | TODO-02/03/04 | TODO-001 | Todo item operations were not owner-scoped | Critical | Automated retest passed |
 | TODO-05/06 | TODO-002/003 | Partial updates mishandled false and omitted fields | High | Automated retest passed |
-| CACHE-01/02/03 | CACHE-001/002 | Cache leaked across users/queries and served stale mutations | Critical / High | Stateful-mock retest and real-Redis Journey 1/2 paths passed; dedicated concurrency coverage pending |
+| CACHE-01/02/03 | CACHE-001/002 | Cache leaked across users/queries and served stale mutations | Critical / High | Stateful-mock retest, Compose PostgreSQL/Redis integration, and real-Redis Journey 1/2 paths passed |
 | FE-01/04 | FE-001/002 | Client query identity and logout cleanup were not account-safe | High | Unit retest, Journey 1 logout, and Journey 2 isolated-session checks passed; same-context account switch remains unit-only |
 
 ## 9. Known limitations and residual risk
@@ -160,11 +162,11 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 - PostgreSQL and Redis are intentionally not reachable from the host through the default Compose file; host-run backend development requires separate local data services or an explicit local-only override.
 - Seed data is suitable for local smoke/benchmark preparation but is randomly generated and is not a deterministic reset fixture.
 - Both required Playwright journeys use fixed retry-indexed fixtures. The npm headless/headed/UI commands reset the exact allowlist before execution; concurrent suites against one backend are unsupported because they share that namespace.
-- Existing backend tests use SQLite and a Redis mock, so PostgreSQL/Redis integration coverage must be added separately.
+- The fast backend suite intentionally uses SQLite and a Redis mock; run the separately documented Compose integration suite for PostgreSQL/Redis fidelity. It does not simulate Redis outages.
 
 ## 10. Approval
 
 | Role | Name | Decision | Date | Notes |
 |---|---|---|---|---|
-| Author | Nguyen Dinh Duc | Pending | `2026-09-18` | Automated remediation and both E2E journeys recorded; manual and dedicated integration execution pending |
+| Author | Nguyen Dinh Duc | Pending | `2026-09-18` | Automated remediation, both E2E journeys, and dedicated PostgreSQL/Redis integration execution recorded; manual execution remains pending |
 | Reviewer | `<name>` | Pending | `<date>` | — |

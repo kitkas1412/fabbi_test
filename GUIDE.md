@@ -162,6 +162,21 @@ cd backend
 pytest tests/ -v
 ```
 
+### Backend PostgreSQL/Redis Integration Tests
+
+The fast suite above deliberately uses SQLite and a Redis mock. Run the
+dedicated suite in a disposable Compose backend container to exercise the real
+PostgreSQL schema, Redis cache keys, and atomic refresh-token rotation:
+
+```bash
+docker compose up -d --wait postgres redis
+docker compose run --rm --no-deps backend sh -c \
+  'alembic upgrade head && pytest integration_tests/ -v'
+```
+
+The suite creates randomly named `integration-*@example.com` accounts and
+removes their database rows, Redis cache keys, and sessions during teardown.
+
 ### Frontend E2E Tests (Playwright)
 
 Start the current backend services, install Chromium once, then run the suite
