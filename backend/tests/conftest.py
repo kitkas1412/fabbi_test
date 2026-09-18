@@ -60,6 +60,10 @@ def override_get_redis():
     mock_redis.set = AsyncMock()
     mock_redis.delete = AsyncMock()
     mock_redis.incr = AsyncMock(return_value=1)
+    mock_redis.create_refresh_session = AsyncMock()
+    mock_redis.rotate_refresh_session = AsyncMock(return_value=True)
+    mock_redis.revoke_session = AsyncMock()
+    mock_redis.is_session_revoked = AsyncMock(return_value=False)
     return mock_redis
 
 
@@ -86,6 +90,9 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 def shared_redis():
     """Provide one in-memory Redis mock shared by all requests in a test."""
     cache: dict[str, str] = {}
+    refresh_sessions: dict[str, tuple[str, str]] = {}
+    session_refresh_tokens: dict[str, str] = {}
+    revoked_sessions: set[str] = set()
     mock_redis = MagicMock()
 
     async def get(key: str) -> str | None:
@@ -107,10 +114,52 @@ def shared_redis():
         cache[key] = str(value)
         return value
 
+    async def create_refresh_session(
+        session_id: str,
+        token_id: str,
+        user_id: str,
+        ttl_seconds: int,
+    ) -> None:
+        refresh_sessions[token_id] = (session_id, user_id)
+        session_refresh_tokens[session_id] = token_id
+
+    async def rotate_refresh_session(
+        session_id: str,
+        old_token_id: str,
+        new_token_id: str,
+        user_id: str,
+        ttl_seconds: int,
+    ) -> bool:
+        if session_id in revoked_sessions or refresh_sessions.get(old_token_id) != (
+            session_id,
+            user_id,
+        ):
+            return False
+        del refresh_sessions[old_token_id]
+        refresh_sessions[new_token_id] = (session_id, user_id)
+        session_refresh_tokens[session_id] = new_token_id
+        return True
+
+    async def revoke_session(
+        session_id: str,
+        access_token_ttl_seconds: int,
+    ) -> None:
+        revoked_sessions.add(session_id)
+        token_id = session_refresh_tokens.pop(session_id, None)
+        if token_id:
+            refresh_sessions.pop(token_id, None)
+
+    async def is_session_revoked(session_id: str) -> bool:
+        return session_id in revoked_sessions
+
     mock_redis.get = AsyncMock(side_effect=get)
     mock_redis.set = AsyncMock(side_effect=set_value)
     mock_redis.delete = AsyncMock(side_effect=delete)
     mock_redis.incr = AsyncMock(side_effect=incr)
+    mock_redis.create_refresh_session = AsyncMock(side_effect=create_refresh_session)
+    mock_redis.rotate_refresh_session = AsyncMock(side_effect=rotate_refresh_session)
+    mock_redis.revoke_session = AsyncMock(side_effect=revoke_session)
+    mock_redis.is_session_revoked = AsyncMock(side_effect=is_session_revoked)
 
     previous_override = app.dependency_overrides.get(get_redis)
     app.dependency_overrides[get_redis] = lambda: mock_redis
@@ -125,5 +174,10 @@ def shared_redis():
 @pytest.fixture
 def auth_headers() -> dict:
     """Create auth headers with a valid token for testing."""
-    token = create_access_token(data={"sub": "00000000-0000-0000-0000-000000000001"})
+    token = create_access_token(
+        data={
+            "sub": "00000000-0000-0000-0000-000000000001",
+            "sid": "00000000-0000-0000-0000-000000000002",
+        }
+    )
     return {"Authorization": f"Bearer {token}"}

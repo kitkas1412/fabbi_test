@@ -38,7 +38,7 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 |---|---|---|
 | Browser | Playwright 1.63.0 / Chromium 153.0.8010.12 | Suite 3/3 passes; both required Tier 2B journeys complete |
 | Frontend | Host Node 24.17.0 / npm 11.13.0; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 2/2, Playwright 3/3, lint, and production build pass |
-| Backend | Non-root container Python 3.12.14; isolated host Python 3.12.12; `http://localhost:8000` | Regression suite 23/23, Black, and unfiltered Flake8 pass; backend health-gated cold start passes |
+| Backend | Non-root container Python 3.12.14; isolated host Python 3.12.12; `http://localhost:8000` | Regression suite 25/25, Black, and unfiltered Flake8 pass; backend health-gated cold start passes |
 | PostgreSQL | Compose image `postgres:16-alpine` | Running; migration at head; 100 users and 1,000 todos seeded |
 | Redis | Compose image `redis:7-alpine` | Healthy with password authentication; unauthenticated commands are rejected; Journey 1/2 real-cache paths pass |
 | Docker | Docker 29.5.2 / Compose 5.1.4 | Four services healthy; readiness order, non-root app users, and internal-only data ports verified |
@@ -62,7 +62,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 - [x] Required services become healthy on a cold start without a manual restart.
 - [x] Database migrations completed successfully at `c3d5e7f9a1b2 (head)`.
 - [x] Test data resets deterministically through an exact email allowlist before headless/headed/UI runs.
-- [x] Backend automated tests were executed after remediation: 23/23 passed.
+- [x] Backend automated tests were executed after remediation: 25/25 passed.
 - [x] Backend Black and unfiltered Flake8 gates pass on the remediated tree.
 - [x] Frontend query-isolation/session-cleanup unit tests were executed: 2/2 passed.
 - [x] Frontend lint and production build pass; the bundle-size warning remains tracked as `FE-007`.
@@ -87,8 +87,8 @@ Do not record real passwords or tokens in this document. Use disposable local te
 | AUTH-04 | JWT | Expired access token is rejected | Expired token available | Call `/auth/me` and `/todos` | Both return 401 without protected data | High / Critical | Automated regression confirms `/auth/me` returns 401; `/todos` manual check remains | Partial (Automated) |
 | AUTH-05 | JWT | Tampered token is rejected | Valid token available | Modify payload/signature and call protected API | Request returns 401 | High / Critical | `<actual>` | Not Run |
 | AUTH-06 | JWT | Refresh token cannot act as access token | Valid refresh token | Call protected Todo endpoint with refresh token | Request returns 401 | High / Critical | Automated regression confirms access-only `/auth/me` rejects the refresh token; Todo endpoint manual check remains | Partial (Automated) |
-| AUTH-07 | Refresh | Refresh token rotates once | Valid refresh token | Refresh, then reuse old token | New pair is issued; old refresh token is rejected | High / Critical | `<actual>` | Not Run |
-| AUTH-08 | Logout | Logout revokes the refresh session | Logged-in user | Logout, then try refresh | Refresh is rejected | High / Critical | `<actual>` | Not Run |
+| AUTH-07 | Refresh | Refresh token rotates once | Valid refresh token | Refresh, then reuse old token | New pair is issued; old refresh token is rejected | High / Critical | `test_refresh_token_rotation_rejects_replay` verifies the old token returns 401 after rotation | Pass (Automated) |
+| AUTH-08 | Logout | Logout revokes the session | Logged-in user | Logout, then try `/auth/me` and refresh | Access and refresh token are rejected | High / Critical | `test_logout_revokes_access_and_refresh_session` verifies both requests return 401 after logout | Pass (Automated) |
 | AUTH-09 | Login | Registered user can log in with valid credentials | Journey 1 account exists and is logged out | Submit the registered email/password | Login returns 200 and the dashboard displays the account | High / Major | Journey 1 logs out after registration, logs back in, and reaches the authenticated dashboard | Pass (E2E) |
 | TODO-01 | CRUD | Owner completes full Todo lifecycle | User A logged in | Create, read, update, delete a Todo | Every operation succeeds and final read is 404 | High / Major | Journey 1 creates, edits, completes, and deletes through the UI; a final authenticated GET returns 404 | Pass (E2E) |
 | TODO-02 | Authorization | User B cannot read User A's Todo | User A owns Todo X; User B logged in | B requests `GET /todos/X` | 404 without data disclosure | High / Critical | API regression and Journey 2 confirm GET returns 404; B's list/UI omit X | Pass (Automated + E2E) |
@@ -134,6 +134,7 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | RUN-015 | `2026-09-18` | `f214cc0` + deterministic-data worktree | Docker backend/PostgreSQL/Redis; Playwright 1.63.0 / Chromium 153.0.8010.12 / Vite 4173 | Nguyen Dinh Duc with Codex assistance | Deterministic reset and headless/headed commands | **Pass with warnings**: two consecutive headless runs pass 3/3; second reset deletes 3 previous fixture users; headed `--list` resets them again and lists all 3 tests | Exact 9-email allowlist covers attempt/retries 0–2; reset requires `E2E_ALLOW_RESET=1`; dialog warnings remain |
 | RUN-016 | `2026-09-18` | `cba9e0d` + infrastructure worktree | Docker 29.5.2 / Compose 5.1.4; Python 3.12.14; Node 20 image | Nguyen Dinh Duc with Codex assistance | Tier 3B build, cold start, privilege, network/auth, and regression checks | **Pass with warnings**: all services healthy in dependency order; non-root UIDs; internal-only DB/cache ports; Redis rejects no-auth; backend 22/22, Black/Flake8, frontend 2/2/lint/build pass; existing bundle/deprecation warnings remain | `AUTH-005`, `INFRA-001`–`INFRA-005` verified; first container pytest exposed and led to fixing working-directory/cache ownership |
 | RUN-017 | `2026-09-18` | `de88674` + database-performance worktree | PostgreSQL 16.15 / Docker Desktop; 10 CPUs / ~7.75 GiB; isolated `fabbi_performance` database | Nguyen Dinh Duc with Codex assistance | Tier 3C baseline/index/retest and backend regression | **Pass with warnings**: 10k users/1M Todos; Q1 median 22.245→0.056 ms and Q2 20.471→0.064 ms; migration concurrent upgrade/downgrade/re-upgrade passes; backend 23/23, Black, Flake8 pass; existing deprecation warnings remain | Raw plans, all timing samples, index size, migration safety, and limitations in `docs/PERFORMANCE_REPORT.md`; `DB-003` remains open |
+| RUN-018 | `2026-09-18` | AUTH-003 working tree | Fresh non-root Docker Python 3.12.14 image; Redis 7 Compose service | Nguyen Dinh Duc with Codex assistance | Refresh rotation, logout revocation, full backend quality gates, and real-Redis Lua smoke | **Pass with warnings**: 25/25 pytest, Black, and Flake8 pass; Redis proves one-time rotation and rejects refresh after logout; 3 known deprecation warnings remain | `test_refresh_token_rotation_rejects_replay`; `test_logout_revokes_access_and_refresh_session`; AUTH-003 verified |
 
 ## 8. Defect log
 

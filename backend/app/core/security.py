@@ -66,3 +66,9 @@ def verify_token(token: str) -> dict[str, Any] | None:
         return payload
     except JWTError:
         return None
+
+
+def token_remaining_seconds(payload: dict[str, Any]) -> int:
+    """Return the remaining JWT lifetime rounded up to a positive TTL."""
+    expires_at = datetime.fromtimestamp(int(payload["exp"]), tz=timezone.utc)
+    return max(1, int((expires_at - datetime.now(timezone.utc)).total_seconds()) + 1)

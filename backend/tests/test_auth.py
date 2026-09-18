@@ -82,6 +82,59 @@ async def test_logout(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_refresh_token_rotation_rejects_replay(
+    client: AsyncClient,
+    shared_redis,
+):
+    """AUTH-003: a refresh token is single-use after a successful rotation."""
+    registration = await client.post(
+        "/api/v1/auth/register",
+        json={"email": "refresh-rotation@example.com", "password": "password123"},
+    )
+    original_refresh_token = registration.json()["refresh_token"]
+
+    first_refresh = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": original_refresh_token},
+    )
+
+    assert first_refresh.status_code == 200
+    assert first_refresh.json()["refresh_token"] != original_refresh_token
+
+    replay = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": original_refresh_token},
+    )
+
+    assert replay.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_logout_revokes_access_and_refresh_session(
+    client: AsyncClient,
+    shared_redis,
+):
+    """AUTH-003: logout makes the current access and refresh session unusable."""
+    registration = await client.post(
+        "/api/v1/auth/register",
+        json={"email": "logout-revocation@example.com", "password": "password123"},
+    )
+    tokens = registration.json()
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+    logout_response = await client.post("/api/v1/auth/logout", headers=headers)
+    access_after_logout = await client.get("/api/v1/auth/me", headers=headers)
+    refresh_after_logout = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": tokens["refresh_token"]},
+    )
+
+    assert logout_response.status_code == 200
+    assert access_after_logout.status_code == 401
+    assert refresh_after_logout.status_code == 401
+
+
+@pytest.mark.asyncio
 async def test_expired_access_token_is_rejected(client: AsyncClient):
     """AUTH-001: an expired access token cannot authenticate a request."""
     registration = await client.post(
