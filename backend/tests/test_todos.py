@@ -5,9 +5,11 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.v1.todos import commit_todo_mutation
+from app.services.todo_service import get_todos
 
 
 async def get_auth_token(client: AsyncClient, email: str = "todo@example.com") -> str:
@@ -83,6 +85,32 @@ async def test_get_todos_orders_newest_first(client: AsyncClient):
         second.json()["id"],
         first.json()["id"],
     ]
+
+
+@pytest.mark.asyncio
+async def test_todo_list_eager_loads_users_for_response(
+    client: AsyncClient,
+    db_session,
+):
+    """DB-003: list queries load Todo users without one query per Todo."""
+    token = await get_auth_token(client, "eager-users@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+    created = []
+    for title in ("First todo", "Second todo"):
+        response = await client.post(
+            "/api/v1/todos",
+            json={"title": title},
+            headers=headers,
+        )
+        created.append(response.json())
+
+    todos, total = await get_todos(
+        db_session,
+        user_id=uuid.UUID(created[0]["user_id"]),
+    )
+
+    assert total == 2
+    assert all("user" not in sa_inspect(todo).unloaded for todo in todos)
 
 
 @pytest.mark.asyncio

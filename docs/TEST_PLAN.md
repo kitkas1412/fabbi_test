@@ -38,7 +38,7 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 |---|---|---|
 | Browser | Playwright 1.63.0 / Chromium 153.0.8010.12 | Suite 3/3 passes; both required Tier 2B journeys complete |
 | Frontend | Host Node 24.17.0 / npm 11.13.0; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 2/2, Playwright 3/3, lint, and production build pass |
-| Backend | Non-root container Python 3.12.14; isolated host Python 3.12.12; `http://localhost:8000` | Regression suite 29/29, Black, and unfiltered Flake8 pass; backend health-gated cold start passes |
+| Backend | Non-root container Python 3.12.14; isolated host Python 3.12.12; `http://localhost:8000` | Regression suite 30/30, Black, and unfiltered Flake8 pass; backend health-gated cold start passes |
 | PostgreSQL | Compose image `postgres:16-alpine` | Running; migration at head; 100 users and 1,000 todos seeded |
 | Redis | Compose image `redis:7-alpine` | Healthy with password authentication; unauthenticated commands are rejected; Journey 1/2 real-cache paths pass |
 | Docker | Docker 29.5.2 / Compose 5.1.4 | Four services healthy; readiness order, non-root app users, and internal-only data ports verified |
@@ -62,7 +62,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 - [x] Required services become healthy on a cold start without a manual restart.
 - [x] Database migrations completed successfully at `d4e6f8a0b2c3 (head)`.
 - [x] Test data resets deterministically through an exact email allowlist before headless/headed/UI runs.
-- [x] Backend automated tests were executed after remediation: 29/29 passed.
+- [x] Backend automated tests were executed after remediation: 30/30 passed.
 - [x] Backend Black and unfiltered Flake8 gates pass on the remediated tree.
 - [x] Frontend query-isolation/session-cleanup unit tests were executed: 2/2 passed.
 - [x] Frontend lint and production build pass; the bundle-size warning remains tracked as `FE-007`.

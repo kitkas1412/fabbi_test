@@ -2,6 +2,7 @@ import uuid
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.models.todo import Todo
 from app.schemas.todo import TodoCreate
@@ -30,6 +31,7 @@ async def get_todos(
     """Get all todos with pagination for a specific user."""
     query = (
         select(Todo)
+        .options(joinedload(Todo.user))
         .where(Todo.user_id == user_id)
         .order_by(Todo.created_at.desc(), Todo.id.desc())
         .offset(skip)
