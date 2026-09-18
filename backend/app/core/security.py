@@ -9,6 +9,10 @@ from app.core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# Precomputed bcrypt hash for unknown-account login attempts. Verifying it keeps
+# the public failure path close to the timing of a real password verification.
+DUMMY_PASSWORD_HASH = "$2b$12$PsKgCHXE5O6NEVp6e4wRKO7.hDAuoHpekp1zosL6O6aKcRT1Llsb2"
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)

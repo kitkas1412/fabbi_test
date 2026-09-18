@@ -38,7 +38,7 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 |---|---|---|
 | Browser | Playwright 1.63.0 / Chromium 153.0.8010.12 | Suite 3/3 passes; both required Tier 2B journeys complete |
 | Frontend | Host Node 24.17.0 / npm 11.13.0; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 2/2, Playwright 3/3, lint, and production build pass |
-| Backend | Non-root container Python 3.12.14; isolated host Python 3.12.12; `http://localhost:8000` | Regression suite 25/25, Black, and unfiltered Flake8 pass; backend health-gated cold start passes |
+| Backend | Non-root container Python 3.12.14; isolated host Python 3.12.12; `http://localhost:8000` | Regression suite 26/26, Black, and unfiltered Flake8 pass; backend health-gated cold start passes |
 | PostgreSQL | Compose image `postgres:16-alpine` | Running; migration at head; 100 users and 1,000 todos seeded |
 | Redis | Compose image `redis:7-alpine` | Healthy with password authentication; unauthenticated commands are rejected; Journey 1/2 real-cache paths pass |
 | Docker | Docker 29.5.2 / Compose 5.1.4 | Four services healthy; readiness order, non-root app users, and internal-only data ports verified |
@@ -62,7 +62,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 - [x] Required services become healthy on a cold start without a manual restart.
 - [x] Database migrations completed successfully at `c3d5e7f9a1b2 (head)`.
 - [x] Test data resets deterministically through an exact email allowlist before headless/headed/UI runs.
-- [x] Backend automated tests were executed after remediation: 25/25 passed.
+- [x] Backend automated tests were executed after remediation: 26/26 passed.
 - [x] Backend Black and unfiltered Flake8 gates pass on the remediated tree.
 - [x] Frontend query-isolation/session-cleanup unit tests were executed: 2/2 passed.
 - [x] Frontend lint and production build pass; the bundle-size warning remains tracked as `FE-007`.
@@ -83,7 +83,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 |---|---|---|---|---|---|---|---|---|
 | AUTH-01 | Registration | Register a new valid user | Email is unused | Submit valid registration form | User is created and valid tokens/session are returned | High / Major | Journey 1 receives 201, reaches the dashboard, and displays the registered email | Pass (E2E) |
 | AUTH-02 | Registration | Register duplicate email concurrently | Email is unused; two clients ready | Submit two registrations at the same time | Exactly one user is created; the other request gets a stable conflict response | High / Critical | `<actual>` | Not Run |
-| AUTH-03 | Login | Invalid email and invalid password do not enumerate users | One known user | Try unknown email, then known email with wrong password | Both produce the same public status/message | High / Security | `<actual>` | Not Run |
+| AUTH-03 | Login | Invalid email and invalid password do not enumerate users | One known user | Try unknown email, then known email with wrong password | Both produce the same public status/message | High / Security | `test_login_failure_does_not_reveal_whether_email_exists` confirms identical 401 response bodies | Pass (Automated) |
 | AUTH-04 | JWT | Expired access token is rejected | Expired token available | Call `/auth/me` and `/todos` | Both return 401 without protected data | High / Critical | Automated regression confirms `/auth/me` returns 401; `/todos` manual check remains | Partial (Automated) |
 | AUTH-05 | JWT | Tampered token is rejected | Valid token available | Modify payload/signature and call protected API | Request returns 401 | High / Critical | `<actual>` | Not Run |
 | AUTH-06 | JWT | Refresh token cannot act as access token | Valid refresh token | Call protected Todo endpoint with refresh token | Request returns 401 | High / Critical | Automated regression confirms access-only `/auth/me` rejects the refresh token; Todo endpoint manual check remains | Partial (Automated) |

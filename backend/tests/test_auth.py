@@ -43,6 +43,31 @@ async def test_login_success(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_login_failure_does_not_reveal_whether_email_exists(client: AsyncClient):
+    """AUTH-004: unknown-email and wrong-password failures are identical."""
+    await client.post(
+        "/api/v1/auth/register",
+        json={"email": "known-login@example.com", "password": "password123"},
+    )
+
+    unknown_email = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "unknown-login@example.com", "password": "password123"},
+    )
+    wrong_password = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "known-login@example.com", "password": "wrong-password"},
+    )
+
+    assert unknown_email.status_code == wrong_password.status_code == 401
+    assert (
+        unknown_email.json()
+        == wrong_password.json()
+        == {"detail": "Invalid email or password"}
+    )
+
+
+@pytest.mark.asyncio
 async def test_get_current_user(client: AsyncClient):
     """Test getting current user info."""
     # Register and get token

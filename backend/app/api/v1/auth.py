@@ -6,9 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_access_token, get_current_user, get_redis
 from app.core.redis import RedisClient
 from app.core.security import (
+    DUMMY_PASSWORD_HASH,
     create_access_token,
     create_refresh_token,
     token_remaining_seconds,
+    verify_password,
     verify_token,
 )
 from app.db.session import get_db
@@ -76,19 +78,11 @@ async def login(
 ):
     """Authenticate user and return tokens."""
     user = await get_user_by_email(db, user_data.email)
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User with this email not found",
-        )
-
-    from app.core.security import verify_password
-
-    if not verify_password(user_data.password, user.hashed_password):
+    password_hash = user.hashed_password if user else DUMMY_PASSWORD_HASH
+    if not user or not verify_password(user_data.password, password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect password",
+            detail="Invalid email or password",
         )
 
     return await issue_token_pair(redis, user.id)
