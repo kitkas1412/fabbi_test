@@ -68,7 +68,8 @@ Do not record real passwords or tokens in this document. Use disposable local te
 - [x] The fast suite has no pytest-asyncio custom-event-loop deprecation warning.
 - [x] Backend Black and unfiltered Flake8 gates pass on the remediated tree.
 - [x] Frontend query-isolation/session-cleanup/auth-401/page-size/row-key unit tests were executed: 5/5 passed.
-- [x] Frontend lint and production build pass; the bundle-size warning remains tracked as `FE-007`.
+- [x] Frontend lint and production build pass; bundle-size (`FE-007`) and planned native config-loader (`FE-010`) warnings remain tracked.
+- [x] Frontend production and full dependency audits report 0 vulnerabilities.
 - [x] Playwright Chromium suite passes 3/3, including both required Tier 2B journeys.
 - [x] No production credentials or data are used in assessment verification; tracked values are development placeholders.
 
@@ -144,6 +145,7 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | RUN-019 | `2026-09-18` | TEST-002 working tree | Fresh non-root Docker Python 3.12.14 image; PostgreSQL 16 and authenticated Redis 7 Compose services | Nguyen Dinh Duc with Codex assistance | Dedicated production-fidelity integration suite | **Pass with warnings**: 2/2 integration tests, Black across 33 files, Flake8 across app/fast/integration tests, and fast suite 31/31 pass; Pydantic, passlib, pytest-asyncio, and Redis-close deprecation warnings remain | Cache namespaces are distinct per user, mutation versioning refreshes PostgreSQL state, and two simultaneous refreshes yield exactly one 200 and one 401 |
 | RUN-020 | `2026-09-18` | TEST-003 working tree | Fresh non-root Docker Python 3.12.14 image | Nguyen Dinh Duc with Codex assistance | pytest-asyncio event-loop maintenance | **Pass with warnings**: fast suite 31/31, Black across 33 files, and Flake8 across app/fast/integration tests pass; the custom-event-loop warning is absent, while Pydantic and passlib dependency warnings remain | Async tests explicitly use the supported session loop scope; pytest config turns a reintroduced custom `event_loop` fixture warning into an error |
 | RUN-021 | `2026-09-18` | CONFIG-001 working tree | Fresh non-root Docker Python 3.12.14 image | Nguyen Dinh Duc with Codex assistance | Pydantic v2 settings migration | **Pass with warning**: fast suite 32/32, Black across 33 files, and Flake8 across app/fast/integration tests pass; only passlib/crypt dependency warning remains | `SettingsConfigDict` preserves required settings, `.env` lookup, and case sensitivity; Pydantic class-`Config` warning is absent |
+| RUN-022 | `2026-09-18` | DEP-001 working tree | Host Node 24.17.0 / npm 11.13.0 | Nguyen Dinh Duc with Codex assistance | Frontend dependency security remediation | **Pass with warnings**: clean `npm ci`, production and full `npm audit` both report 0 vulnerabilities; unit tests 5/5, ESLint, production build, and Playwright 3/3 pass | Axios 1.20.0, React Router DOM 7.18.4, and compatible transitive fixes are locked; build adds a Vite planned-native-config-loader warning tracked as `FE-010` |
 
 ## 8. Defect log
 
