@@ -79,6 +79,40 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 @pytest.fixture
+def shared_redis():
+    """Provide one in-memory Redis mock shared by all requests in a test."""
+    cache: dict[str, str] = {}
+    mock_redis = MagicMock()
+
+    async def get(key: str) -> str | None:
+        return cache.get(key)
+
+    async def set_value(key: str, value: str, ex: int | None = None) -> None:
+        cache[key] = value
+
+    async def delete(*keys: str) -> int:
+        deleted = 0
+        for key in keys:
+            if key in cache:
+                deleted += 1
+                del cache[key]
+        return deleted
+
+    mock_redis.get = AsyncMock(side_effect=get)
+    mock_redis.set = AsyncMock(side_effect=set_value)
+    mock_redis.delete = AsyncMock(side_effect=delete)
+
+    previous_override = app.dependency_overrides.get(get_redis)
+    app.dependency_overrides[get_redis] = lambda: mock_redis
+    yield mock_redis
+
+    if previous_override is None:
+        app.dependency_overrides.pop(get_redis, None)
+    else:
+        app.dependency_overrides[get_redis] = previous_override
+
+
+@pytest.fixture
 def auth_headers() -> dict:
     """Create auth headers with a valid token for testing."""
     token = create_access_token(data={"sub": "00000000-0000-0000-0000-000000000001"})
