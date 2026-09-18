@@ -9,7 +9,7 @@
 |---|---|
 | Author | Nguyen Dinh Duc |
 | Worktree base | `de88674` |
-| Optimization revision | Alembic `c3d5e7f9a1b2`; Git commit pending |
+| Optimization revision | Alembic `c3d5e7f9a1b2`; Git commit `cb13a34` |
 | Benchmark date | `2026-09-18` |
 | Database | Dedicated `fabbi_performance`; application data was not modified |
 
