@@ -4,6 +4,22 @@ from pydantic import ValidationError
 from app.core.config import Settings
 
 
+def test_settings_loads_required_environment_values(monkeypatch):
+    configured_values = {
+        "DATABASE_URL": "sqlite+aiosqlite:///./configured-test.db",
+        "REDIS_URL": "redis://localhost:6379/5",
+        "JWT_SECRET": "configured-test-jwt-secret",
+    }
+    for setting, value in configured_values.items():
+        monkeypatch.setenv(setting, value)
+
+    settings = Settings(_env_file=None)
+
+    assert settings.DATABASE_URL == configured_values["DATABASE_URL"]
+    assert settings.REDIS_URL == configured_values["REDIS_URL"]
+    assert settings.JWT_SECRET == configured_values["JWT_SECRET"]
+
+
 @pytest.mark.parametrize("missing_setting", ["DATABASE_URL", "REDIS_URL", "JWT_SECRET"])
 def test_sensitive_settings_are_required(monkeypatch, missing_setting):
     configured_values = {

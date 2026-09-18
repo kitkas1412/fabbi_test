@@ -38,7 +38,7 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 |---|---|---|
 | Browser | Playwright 1.63.0 / Chromium 153.0.8010.12 | Suite 3/3 passes; both required Tier 2B journeys complete |
 | Frontend | Host Node 24.17.0 / npm 11.13.0; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 5/5, Playwright 3/3, lint, and production build pass |
-| Backend | Non-root container Python 3.12.14; isolated host Python 3.12.12; `http://localhost:8000` | Fast regression suite 31/31 plus PostgreSQL/Redis integration 2/2; Black and unfiltered Flake8 pass; backend health-gated cold start passes |
+| Backend | Non-root container Python 3.12.14; isolated host Python 3.12.12; `http://localhost:8000` | Fast regression suite 32/32 plus PostgreSQL/Redis integration 2/2; Black and unfiltered Flake8 pass; backend health-gated cold start passes |
 | PostgreSQL | Compose image `postgres:16-alpine` | Running; migration at head; 100 users and 1,000 todos seeded |
 | Redis | Compose image `redis:7-alpine` | Healthy with password authentication; unauthenticated commands are rejected; Journey 1/2 real-cache paths pass |
 | Docker | Docker 29.5.2 / Compose 5.1.4 | Four services healthy; readiness order, non-root app users, and internal-only data ports verified |
@@ -62,7 +62,8 @@ Do not record real passwords or tokens in this document. Use disposable local te
 - [x] Required services become healthy on a cold start without a manual restart.
 - [x] Database migrations completed successfully at `d4e6f8a0b2c3 (head)`.
 - [x] Test data resets deterministically through an exact email allowlist before headless/headed/UI runs.
-- [x] Backend automated tests were executed after remediation: 31/31 passed.
+- [x] Backend automated tests were executed after remediation: 32/32 passed.
+- [x] The fast suite has no Pydantic class-`Config` deprecation warning.
 - [x] PostgreSQL/Redis integration tests were executed after remediation: 2/2 passed.
 - [x] The fast suite has no pytest-asyncio custom-event-loop deprecation warning.
 - [x] Backend Black and unfiltered Flake8 gates pass on the remediated tree.
@@ -142,6 +143,7 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | RUN-018 | `2026-09-18` | AUTH-003 working tree | Fresh non-root Docker Python 3.12.14 image; Redis 7 Compose service | Nguyen Dinh Duc with Codex assistance | Refresh rotation, logout revocation, full backend quality gates, and real-Redis Lua smoke | **Pass with warnings**: 25/25 pytest, Black, and Flake8 pass; Redis proves one-time rotation and rejects refresh after logout; 3 known deprecation warnings remain | `test_refresh_token_rotation_rejects_replay`; `test_logout_revokes_access_and_refresh_session`; AUTH-003 verified |
 | RUN-019 | `2026-09-18` | TEST-002 working tree | Fresh non-root Docker Python 3.12.14 image; PostgreSQL 16 and authenticated Redis 7 Compose services | Nguyen Dinh Duc with Codex assistance | Dedicated production-fidelity integration suite | **Pass with warnings**: 2/2 integration tests, Black across 33 files, Flake8 across app/fast/integration tests, and fast suite 31/31 pass; Pydantic, passlib, pytest-asyncio, and Redis-close deprecation warnings remain | Cache namespaces are distinct per user, mutation versioning refreshes PostgreSQL state, and two simultaneous refreshes yield exactly one 200 and one 401 |
 | RUN-020 | `2026-09-18` | TEST-003 working tree | Fresh non-root Docker Python 3.12.14 image | Nguyen Dinh Duc with Codex assistance | pytest-asyncio event-loop maintenance | **Pass with warnings**: fast suite 31/31, Black across 33 files, and Flake8 across app/fast/integration tests pass; the custom-event-loop warning is absent, while Pydantic and passlib dependency warnings remain | Async tests explicitly use the supported session loop scope; pytest config turns a reintroduced custom `event_loop` fixture warning into an error |
+| RUN-021 | `2026-09-18` | CONFIG-001 working tree | Fresh non-root Docker Python 3.12.14 image | Nguyen Dinh Duc with Codex assistance | Pydantic v2 settings migration | **Pass with warning**: fast suite 32/32, Black across 33 files, and Flake8 across app/fast/integration tests pass; only passlib/crypt dependency warning remains | `SettingsConfigDict` preserves required settings, `.env` lookup, and case sensitivity; Pydantic class-`Config` warning is absent |
 
 ## 8. Defect log
 
