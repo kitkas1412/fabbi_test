@@ -8,7 +8,7 @@ interface TodoItemProps {
   index: number;
   onToggle: (todo: Todo) => void;
   onEdit: (todo: Todo) => void;
-  onDelete: (id: string) => void;
+  onDelete: (todo: Todo) => void;
 }
 
 export function TodoItem({ todo, onToggle, onEdit, onDelete }: TodoItemProps) {
@@ -49,7 +49,7 @@ export function TodoItem({ todo, onToggle, onEdit, onDelete }: TodoItemProps) {
           variant="ghost"
           size="icon"
           className="h-8 w-8 text-destructive hover:text-destructive"
-          onClick={() => onDelete(todo.id)}
+          onClick={() => onDelete(todo)}
         >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>

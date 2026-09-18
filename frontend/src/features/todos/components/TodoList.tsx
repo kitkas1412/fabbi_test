@@ -21,8 +21,8 @@ export function TodoList({ todos }: TodoListProps) {
     setEditingTodo(todo);
   };
 
-  const handleDelete = (id: string) => {
-    deleteTodo.mutate(id);
+  const handleDelete = (todo: Todo) => {
+    deleteTodo.mutate({ id: todo.id, userId: todo.user_id });
   };
 
   if (todos.length === 0) {

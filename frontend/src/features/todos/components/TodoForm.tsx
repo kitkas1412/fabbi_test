@@ -47,7 +47,7 @@ export function TodoForm({ mode, todo, open, onClose }: TodoFormProps) {
       });
     } else if (todo) {
       updateTodo.mutate(
-        { id: todo.id, data },
+        { id: todo.id, userId: todo.user_id, data },
         {
           onSuccess: () => {
             onClose();

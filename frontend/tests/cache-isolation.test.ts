@@ -1,0 +1,32 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { todoKeys } from "../src/features/todos/api/queryKeys.js";
+import { clearUserSession } from "../src/lib/sessionCleanup.js";
+
+test("todo list keys are isolated by user and pagination", () => {
+  const firstPage = todoKeys.list("user-a", 1, 20);
+
+  assert.notDeepEqual(firstPage, todoKeys.list("user-b", 1, 20));
+  assert.notDeepEqual(firstPage, todoKeys.list("user-a", 2, 20));
+  assert.notDeepEqual(firstPage, todoKeys.list("user-a", 1, 50));
+});
+
+test("clearing a session removes tokens and all cached queries", () => {
+  const removedKeys: string[] = [];
+  let removeQueriesCalls = 0;
+
+  clearUserSession(
+    {
+      removeItem: (key) => removedKeys.push(key),
+    },
+    {
+      removeQueries: () => {
+        removeQueriesCalls += 1;
+      },
+    }
+  );
+
+  assert.deepEqual(removedKeys, ["access_token", "refresh_token"]);
+  assert.equal(removeQueriesCalls, 1);
+});
