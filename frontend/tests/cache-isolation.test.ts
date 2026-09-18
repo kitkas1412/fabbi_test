@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { todoKeys } from "../src/features/todos/api/queryKeys.js";
+import {
+  DEFAULT_TODO_PAGE_SIZE,
+  todoKeys,
+} from "../src/features/todos/api/queryKeys.js";
 import { shouldClearSessionForUnauthorized } from "../src/lib/authErrorHandling.js";
 import { clearUserSession } from "../src/lib/sessionCleanup.js";
 
@@ -11,6 +14,10 @@ test("todo list keys are isolated by user and pagination", () => {
   assert.notDeepEqual(firstPage, todoKeys.list("user-b", 1, 20));
   assert.notDeepEqual(firstPage, todoKeys.list("user-a", 2, 20));
   assert.notDeepEqual(firstPage, todoKeys.list("user-a", 1, 50));
+});
+
+test("default Todo page size is bounded by the API limit", () => {
+  assert.equal(DEFAULT_TODO_PAGE_SIZE, 100);
 });
 
 test("clearing a session removes tokens and all cached queries", () => {

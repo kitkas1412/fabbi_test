@@ -37,7 +37,7 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 | Component | Version/configuration | Status |
 |---|---|---|
 | Browser | Playwright 1.63.0 / Chromium 153.0.8010.12 | Suite 3/3 passes; both required Tier 2B journeys complete |
-| Frontend | Host Node 24.17.0 / npm 11.13.0; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 3/3, Playwright 3/3, lint, and production build pass |
+| Frontend | Host Node 24.17.0 / npm 11.13.0; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 4/4, Playwright 3/3, lint, and production build pass |
 | Backend | Non-root container Python 3.12.14; isolated host Python 3.12.12; `http://localhost:8000` | Regression suite 31/31, Black, and unfiltered Flake8 pass; backend health-gated cold start passes |
 | PostgreSQL | Compose image `postgres:16-alpine` | Running; migration at head; 100 users and 1,000 todos seeded |
 | Redis | Compose image `redis:7-alpine` | Healthy with password authentication; unauthenticated commands are rejected; Journey 1/2 real-cache paths pass |
@@ -64,7 +64,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 - [x] Test data resets deterministically through an exact email allowlist before headless/headed/UI runs.
 - [x] Backend automated tests were executed after remediation: 31/31 passed.
 - [x] Backend Black and unfiltered Flake8 gates pass on the remediated tree.
-- [x] Frontend query-isolation/session-cleanup/auth-401 unit tests were executed: 3/3 passed.
+- [x] Frontend query-isolation/session-cleanup/auth-401/page-size unit tests were executed: 4/4 passed.
 - [x] Frontend lint and production build pass; the bundle-size warning remains tracked as `FE-007`.
 - [x] Playwright Chromium suite passes 3/3, including both required Tier 2B journeys.
 - [x] No production credentials or data are used in assessment verification; tracked values are development placeholders.
@@ -105,6 +105,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 | FE-02 | Error UX | Invalid login shows error without hard reload | Login page open | Submit wrong credentials | Stable error is shown; form remains usable | Medium / Major | Node regression confirms the global 401 handler leaves `/auth/login` responses for the form, while it still clears sessions for protected requests | Pass (Unit) |
 | FE-03 | Optimistic UI | Failed update rolls back | Simulate update failure | Toggle/edit Todo | UI restores previous value and reports failure | Medium / Major | `<actual>` | Not Run |
 | FE-04 | Query isolation | Todo query identity includes account and pagination | Query key factory available | Compare keys for different users, pages, and sizes | Every response-changing input produces a distinct key | High / Critical | Node unit regression confirms distinct keys for user, page, and size | Pass (Unit) |
+| FE-05 | Pagination | Default Todo request is bounded | Authenticated user with the default Todo page | Load Todos without a page-size override | Request size matches the documented bounded default | Medium / Major | Node regression confirms `DEFAULT_TODO_PAGE_SIZE` is 100, matching the backend maximum | Pass (Unit) |
 | INFRA-01 | Startup | Clean Docker cold start is dependable | Services stopped; environment configured | Run `docker compose up -d --build --wait` | Dependencies become healthy and backend starts without race failure | High / Major | Health order observed: PostgreSQL/Redis → backend → frontend; all services healthy without restart | Pass (Integration) |
 | INFRA-02 | Security | Runtime config isolates data services and app privileges | Compose rendered and running | Inspect config, ports, UIDs, and Redis auth | No published DB/cache port or tracked secret; apps non-root; Redis requires auth | High / Security | No DB/cache host bindings; tracked `.env` removed; UIDs 999/1000; unauthenticated Redis returns `NOAUTH` | Pass (Integration) |
 | TAG-01 | Tier 4 | Duplicate tag names ignore casing per user | Tier 4 enabled; User A logged in | Create `Work`, then `work` | Second create is rejected consistently | Medium / Major | `<actual>` | Not Run |

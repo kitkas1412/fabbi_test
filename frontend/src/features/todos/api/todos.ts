@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
-import { todoKeys } from "./queryKeys";
+import { DEFAULT_TODO_PAGE_SIZE, todoKeys } from "./queryKeys";
 
 export interface Todo {
   id: string;
@@ -46,7 +46,7 @@ interface DeleteTodoVariables {
 export function useTodos(
   userId: string | undefined,
   page: number = 1,
-  size: number = 100
+  size: number = DEFAULT_TODO_PAGE_SIZE
 ) {
   return useQuery({
     queryKey: todoKeys.list(userId ?? "anonymous", page, size),
