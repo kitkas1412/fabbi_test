@@ -48,8 +48,8 @@ PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:e2e
 The smoke test validates the browser setup without backend data. Journey 1 uses
 a unique disposable account to cover registration, logout/login, Todo creation,
 editing, completion, deletion, and final logout against the backend at
-`http://localhost:8000`. The Tier 2B cross-user isolation journey is still
-pending.
+`http://localhost:8000`. Journey 2 uses two isolated browser contexts and
+verifies that user B cannot see, read, update, or delete user A's Todo.
 
 Failure artifacts are written to `test-results/`. The HTML report is written to
 `playwright-report/` and can be opened with:

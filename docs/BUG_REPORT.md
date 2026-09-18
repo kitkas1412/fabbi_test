@@ -7,7 +7,7 @@
 | Assessment branch | `assessment/nguyen-dinh-duc` |
 | Author | Nguyen Dinh Duc |
 | Review date | `2026-09-18` |
-| Application version/commit | `33bac3fe43bbeb0c67becd8e45d00cd1d119dcae` plus pending Journey 1 worktree |
+| Application version/commit | `92d83dd4b8c65affa0fb32d34c2be8e9c29e87f8` plus pending Journey 2 worktree |
 | Overall status | Core auth, Todo isolation/update/cache, and frontend session remediations implemented; remaining findings are tracked below |
 
 ## Purpose
@@ -36,10 +36,10 @@ No Critical or High issue may remain Deferred for final submission.
 | AUTH-003 | Session | Refresh rotation/revocation and logout are ineffective | High | `backend/app/api/v1/auth.py` | Open | — | `<test/evidence>` |
 | AUTH-004 | Authentication | Login response enables user enumeration | Medium | `backend/app/api/v1/auth.py::login` | Open | — | `<test/evidence>` |
 | AUTH-005 | Configuration | Default JWT secret can be used outside a safe local profile | High | `backend/app/core/config.py` | Open | — | `<test/evidence>` |
-| TODO-001 | Authorization | Todo detail/update/delete are not owner-scoped | Critical | `backend/app/api/v1/todos.py` | Verified | `16cda47` | Parametrized cross-user GET/PUT/DELETE regression passes and confirms owner data is unchanged |
+| TODO-001 | Authorization | Todo detail/update/delete are not owner-scoped | Critical | `backend/app/api/v1/todos.py` | Verified | `16cda47` | API regression and Playwright Journey 2 confirm cross-user GET/PUT/DELETE return 404 and owner data remains unchanged |
 | TODO-002 | Update | `completed=false` is ignored | High | `backend/app/api/v1/todos.py::update_existing_todo` | Verified | `0ff4674` | `test_partial_update_can_set_completed_to_false`; backend suite 19/19 passes |
 | TODO-003 | Update | An omitted description can be overwritten with `null` | High | `backend/app/api/v1/todos.py::update_existing_todo` | Verified | `0ff4674` | `test_partial_update_preserves_omitted_description`; backend suite 19/19 passes |
-| CACHE-001 | Data isolation | Todo list cache key is shared across users and queries | Critical | `backend/app/api/v1/todos.py::list_todos` | Fixed | `5816658` | Stateful Redis-mock tests pass for user and pagination isolation; real Redis integration pending under `TEST-002` |
+| CACHE-001 | Data isolation | Todo list cache key is shared across users and queries | Critical | `backend/app/api/v1/todos.py::list_todos` | Verified | `5816658` | Mock tests cover user/query variants; Journey 2 confirms user B's real-Redis list response and UI exclude user A's Todo |
 | CACHE-002 | Consistency | Todo mutations do not invalidate list cache | High | `backend/app/api/v1/todos.py` | Verified | `5816658` | Mock regression passes; Playwright Journey 1 also observes fresh create/edit/complete/delete state against PostgreSQL and real Redis |
 | CACHE-003 | Transactions | Cache invalidation is not coordinated with DB commit | High | Todo mutation transaction boundary | Open | — | `<test/evidence>` |
 | DB-001 | Integrity | Email uniqueness is not enforced by the database | High | User model and Alembic migrations | Open | — | `<test/evidence>` |
@@ -48,7 +48,7 @@ No Critical or High issue may remain Deferred for final submission.
 | DB-004 | Performance | Core Todo queries lack a measured composite-index strategy | Medium | `todos` table migrations | Open | — | `<benchmark>` |
 | API-001 | Resource control | Todo page size has no upper bound | Medium | `backend/app/api/v1/todos.py::list_todos` | Open | — | `<test/evidence>` |
 | FE-001 | Data isolation | Todo React Query key omits user and pagination context | High | `frontend/src/features/todos/api/todos.ts` | Fixed | `d5fa690` | Node regression test confirms keys differ by user, page, and size; lint/build pass |
-| FE-002 | Session | Logout/account change does not clear user-scoped query data | High | Auth hooks and query client | Fixed | `d5fa690` | Unit regression confirms token/query cleanup; Journey 1 confirms both tokens are absent after browser logout; cross-user browser coverage pending |
+| FE-002 | Session | Logout/account change does not clear user-scoped query data | High | Auth hooks and query client | Fixed | `d5fa690` | Unit regression confirms token/query cleanup; Journey 1 confirms browser logout cleanup and Journey 2 confirms isolated sessions; same-context account switching remains unit-only |
 | FE-003 | State | Optimistic update does not restore the snapshot on error | Medium | `frontend/src/features/todos/api/todos.ts` | Fixed | `d5fa690` | User-scoped snapshots are restored in `onError`; lint/build pass; component-level failure test pending |
 | FE-004 | Authentication | Global 401 handling reloads login and can hide form errors | Medium | `frontend/src/lib/api.ts` | Open | — | `<test/evidence>` |
 | FE-005 | Pagination | Frontend requests 10,000 Todos by default | Medium | `frontend/src/features/todos/api/todos.ts::useTodos` | Open | — | `<test/evidence>` |
@@ -59,7 +59,7 @@ No Critical or High issue may remain Deferred for final submission.
 | INFRA-004 | Containers | Images run as root and lack scoped `.dockerignore` files | Medium | Backend/frontend Dockerfiles | Open | — | `docker compose exec ... id` returns `uid=0(root)` for both images; no `.dockerignore` exists |
 | INFRA-005 | Build | Frontend build is not reproducible and runtime Vite env is ineffective | Medium | Frontend Dockerfile and Compose | Open | — | `<build evidence>` |
 | TEST-001 | Coverage | Existing tests cover happy paths but not security boundaries | High | `backend/tests/` | Verified | `cea96fd`, `5816658` | Suite now covers expiry, token type, cross-user CRUD, cache isolation/invalidation, and partial updates; 19/19 pass |
-| TEST-002 | Fidelity | SQLite and per-request Redis mocks do not validate production behavior | Medium | `backend/tests/conftest.py` | Open | — | Journey 1 adds one PostgreSQL/real-Redis browser path; a dedicated integration and concurrency suite is still pending |
+| TEST-002 | Fidelity | SQLite and per-request Redis mocks do not validate production behavior | Medium | `backend/tests/conftest.py` | Open | — | Journeys 1/2 add PostgreSQL/real-Redis browser paths; a dedicated integration and concurrency suite is still pending |
 | TEST-003 | Test maintenance | Custom async event-loop fixture is deprecated and will become an error | Low | `backend/tests/conftest.py:28` | Open | — | `pytest tests/ -v` emits `DeprecationWarning` from `pytest-asyncio` |
 | CONFIG-001 | Backend compatibility | Pydantic class-based `Config` is deprecated before Pydantic v3 | Low | `backend/app/core/config.py` | Open | — | `pytest tests/ -v` emits `PydanticDeprecatedSince20` |
 | DEP-001 | Frontend security | Production dependency tree contains 6 known vulnerabilities | High | `frontend/package-lock.json` | Open | — | `npm audit --omit=dev`: 5 High, 1 Moderate; direct packages include `axios@1.17.0` and `react-router-dom@7.17.0`; fixes are available and exploitability still requires triage |
@@ -105,7 +105,7 @@ Copy this section once per finding or link the register row to the corresponding
 | Tier 1: report impactful findings | This document and final PR description | `<PR link>` | In Progress |
 | Tier 1: at least five fixes, including two backend and one frontend | Finding register and implementation commits | AUTH-001/002, TODO-001/002/003, CACHE-001/002, FE-001/002/003 | Minimum implementation met; final PR evidence pending |
 | Tier 2A: at least three backend critical scenarios | `backend/tests/` | 19/19 pass, including ten security/correctness/cache regression cases | Complete |
-| Tier 2B: two required Playwright scenarios | `frontend/e2e/` and `frontend/playwright.config.ts` | Full lifecycle Journey 1 passes; cross-user isolation Journey 2 pending | In Progress (1/2 journeys) |
+| Tier 2B: two required Playwright scenarios | `frontend/e2e/` and `frontend/playwright.config.ts` | Lifecycle Journey 1 and cross-user isolation Journey 2 pass | Complete (2/2 journeys) |
 | Tier 2C: manual test plan | `docs/TEST_PLAN.md` | Matrix and automated evidence updated; manual execution pending | In Progress |
 | Tier 3A: Todo Sharing specification only | `docs/TODO_SHARING_SPEC.md` | Draft structure created; specification decisions pending | In Progress |
 | Tier 3B: at least three infrastructure improvements | Compose/Docker changes | `<validation>` | Not Started |
@@ -128,7 +128,7 @@ Copy this section once per finding or link the register row to the corresponding
 | Frontend unit regression | `cd frontend && npm test` | Pass | Pass: 2/2 query-isolation and session-cleanup tests | `2026-09-18` | FE-001/FE-002 regression coverage; Node 20-compatible runner |
 | Frontend build | `cd frontend && npm run build` | Pass | Pass with warning: main JS 521.53 kB (163.06 kB gzip) | `2026-09-18` | `FE-007` |
 | Frontend dependency audit | `cd frontend && npm audit --omit=dev` | No known production vulnerabilities | Fail: 6 vulnerabilities (5 High, 1 Moderate) | `2026-09-18` | `DEP-001`; full audit reports 9 total (7 High, 2 Moderate) |
-| Playwright | `cd frontend && npm run test:e2e` | Pass | 2/2 pass in 6.9s: login smoke and full lifecycle Journey 1 | `2026-09-18` | Runs against current Vite source on port 4173 and current Docker backend/PostgreSQL/Redis; cross-user Journey 2 pending |
+| Playwright | `cd frontend && npm run test:e2e` | Pass | 3/3 pass in 11.8s: login smoke, lifecycle Journey 1, and cross-user Journey 2 | `2026-09-18` | Runs three workers against current Vite source on port 4173 and current Docker backend/PostgreSQL/Redis |
 | PostgreSQL/Redis smoke | `pg_isready`; `redis-cli ping`; README seed command | Pass | Pass: PostgreSQL accepts connections, Redis returns `PONG`, seed created 100 users and 1,000 todos | `2026-09-18` | Counts verified directly in PostgreSQL |
 | Service HTTP smoke | `curl http://localhost:8000/health`; `curl -I http://localhost:3000` | Pass | Pass: backend reports healthy; frontend returns HTTP 200 | `2026-09-18` | Performed after manual backend restart |
 | Docker cold start | `docker compose up --build -d` from stopped stack | All services start reliably | Fail: backend exited on initial PostgreSQL connection; all services healthy only after `docker compose start backend` | `2026-09-18` | `INFRA-001` |
@@ -141,4 +141,4 @@ Copy this section once per finding or link the register row to the corresponding
 | Risk | Severity | Reason not fixed | Mitigation | Owner | Review date |
 |---|---|---|---|---|---|
 | Cache invalidation is not coordinated with DB commit | High | Transaction/cache boundary requires a dedicated design and real Redis concurrency evidence | Keep `CACHE-003` open; TTL limits stale-entry lifetime but is not the primary control | Nguyen Dinh Duc | `2026-09-18` |
-| Redis behavior lacks a dedicated integration/concurrency suite | Medium | Journey 1 covers one sequential real-Redis lifecycle, not failure ordering or concurrency | Keep `TEST-002` open and add focused integration coverage before final submission | Nguyen Dinh Duc | `2026-09-18` |
+| Redis behavior lacks a dedicated integration/concurrency suite | Medium | Journeys cover real-Redis lifecycle and cross-user isolation, not failure ordering or concurrent mutations | Keep `TEST-002` open and add focused integration coverage before final submission | Nguyen Dinh Duc | `2026-09-18` |

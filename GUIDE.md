@@ -165,7 +165,7 @@ automatically. Set
 `PLAYWRIGHT_BASE_URL=http://localhost:3000` to target an already-running
 frontend. The complete authentication/Todo and cross-user Tier 2B journeys
 require the backend and disposable test accounts. Journey 1 covers the complete
-authentication/Todo lifecycle; the cross-user isolation journey remains pending.
+authentication/Todo lifecycle; Journey 2 covers cross-user UI and API isolation.
 
 ### Database Performance Benchmarking
 To test database indexing and query execution times with 1 million records:
