@@ -7,8 +7,8 @@
 | Assessment branch | `assessment/nguyen-dinh-duc` |
 | Author | Nguyen Dinh Duc |
 | Review date | `2026-09-18` |
-| Application version/commit | `c92fd72568b87dbc49d5f69293de1762ff66c175` |
-| Overall status | Initial review complete; remediation not started |
+| Application version/commit | `3d1936bfd55b3a6386b6cc74e092f0c6c684d5fe` |
+| Overall status | Baseline executed; remediation not started |
 
 ## Purpose
 
@@ -53,13 +53,19 @@ No Critical or High issue may remain Deferred for final submission.
 | FE-004 | Authentication | Global 401 handling reloads login and can hide form errors | Medium | `frontend/src/lib/api.ts` | Open | — | `<test/evidence>` |
 | FE-005 | Pagination | Frontend requests 10,000 Todos by default | Medium | `frontend/src/features/todos/api/todos.ts::useTodos` | Open | — | `<test/evidence>` |
 | FE-006 | React | Todo rows use array indexes as keys | Low | `frontend/src/features/todos/components/TodoList.tsx` | Open | — | `<test/evidence>` |
-| INFRA-001 | Startup | Compose has no dependency healthchecks/readiness conditions | High | `docker-compose.yml` | Open | — | `<cold-start evidence>` |
+| INFRA-001 | Startup | Compose has no dependency healthchecks/readiness conditions | High | `docker-compose.yml` | Open | — | Cold start: backend exited with PostgreSQL `ConnectionRefusedError`; it started only after a manual restart once PostgreSQL was ready |
 | INFRA-002 | Secrets | Development credentials are embedded in tracked configuration | High | Compose, settings, tracked `.env` files | Open | — | `<scan/evidence>` |
-| INFRA-003 | Network | PostgreSQL and unauthenticated Redis are published to the host | High | `docker-compose.yml` | Open | — | `<config evidence>` |
-| INFRA-004 | Containers | Images run as root and lack scoped `.dockerignore` files | Medium | Backend/frontend Dockerfiles | Open | — | `<image evidence>` |
+| INFRA-003 | Network | PostgreSQL and unauthenticated Redis are published to the host | High | `docker-compose.yml` | Open | — | `docker compose ps -a` shows host bindings on `0.0.0.0:5432` and `0.0.0.0:6379` |
+| INFRA-004 | Containers | Images run as root and lack scoped `.dockerignore` files | Medium | Backend/frontend Dockerfiles | Open | — | `docker compose exec ... id` returns `uid=0(root)` for both images; no `.dockerignore` exists |
 | INFRA-005 | Build | Frontend build is not reproducible and runtime Vite env is ineffective | Medium | Frontend Dockerfile and Compose | Open | — | `<build evidence>` |
-| TEST-001 | Coverage | Existing tests cover happy paths but not security boundaries | High | `backend/tests/` | Open | — | `<test report>` |
+| TEST-001 | Coverage | Existing tests cover happy paths but not security boundaries | High | `backend/tests/` | Open | — | Baseline pytest: 9/9 pass, but no expiry, token-type, cross-user, cache-isolation, or PostgreSQL/Redis boundary test exists |
 | TEST-002 | Fidelity | SQLite and per-request Redis mocks do not validate production behavior | Medium | `backend/tests/conftest.py` | Open | — | `<integration report>` |
+| TEST-003 | Test maintenance | Custom async event-loop fixture is deprecated and will become an error | Low | `backend/tests/conftest.py:28` | Open | — | `pytest tests/ -v` emits `DeprecationWarning` from `pytest-asyncio` |
+| CONFIG-001 | Backend compatibility | Pydantic class-based `Config` is deprecated before Pydantic v3 | Low | `backend/app/core/config.py` | Open | — | `pytest tests/ -v` emits `PydanticDeprecatedSince20` |
+| DEP-001 | Frontend security | Production dependency tree contains 6 known vulnerabilities | High | `frontend/package-lock.json` | Open | — | `npm audit --omit=dev`: 5 High, 1 Moderate; direct packages include `axios@1.17.0` and `react-router-dom@7.17.0`; fixes are available and exploitability still requires triage |
+| DEP-002 | Backend compatibility | Passlib/bcrypt stack emits an internal version lookup error during password hashing | Medium | `backend/requirements.txt`, `backend/app/db/seed.py` | Open | — | Seed succeeds but logs `AttributeError: module 'bcrypt' has no attribute '__about__'` with `passlib==1.7.4` and `bcrypt==4.3.0`; pytest also warns about deprecated `crypt` usage |
+| QUALITY-001 | Backend quality | Required backend Black and Flake8 gates fail | Low | `backend/app/core/security.py`, `backend/tests/conftest.py` | Open | — | Black would reformat 1 file; Flake8 reports 5 × `E402` on lines 14–18 of `tests/conftest.py` |
+| FE-007 | Frontend performance | Production JavaScript bundle exceeds Vite's 500 kB warning threshold | Medium | Frontend production bundle | Open | — | `npm run build`: main JS is 521.24 kB (162.85 kB gzip); Vite recommends code splitting/manual chunks |
 | DOC-001 | Deliverables | `docs/` was ignored despite required assessment documents | Medium | `.gitignore` | Fixed | Pending commit | `git check-ignore` confirms deliverables are visible and `docs/ANSWER_KEY.md` remains ignored |
 
 Add newly discovered issues before implementing their fixes. Do not silently omit a finding because it falls outside the minimum five fixes required by Tier 1.
@@ -110,14 +116,20 @@ Copy this section once per finding or link the register row to the corresponding
 
 | Check | Command/environment | Expected | Actual | Date | Evidence |
 |---|---|---|---|---|---|
-| Backend tests | `PYTHONPATH=backend python3 -m pytest backend/tests -p no:cacheprovider` | Pass | Blocked: system Python 3.14.7 has no `pytest` installed | `2026-09-18` | Terminal: `No module named pytest` |
-| Backend format/lint | `cd backend && black --check . && flake8 app tests` | Pass | Not run; backend dependencies are not installed locally | `2026-09-18` | Baseline pending |
-| Frontend lint | `cd frontend && npm run lint` | Pass | Not run; `npm ci` baseline is pending | `2026-09-18` | Baseline pending |
-| Frontend build | `cd frontend && npm run build` | Pass | Not run; `npm ci` baseline is pending | `2026-09-18` | Baseline pending |
+| Compose validation | `docker compose config -q` | Pass | Pass (exit 0) | `2026-09-18` | Rendered Compose configuration is valid |
+| Backend tests | `docker compose exec -T backend pytest tests/ -v` | Pass | Pass: 9 collected, 9 passed in 1.86s; 3 deprecation warnings | `2026-09-18` | Warnings linked to `TEST-003`, `CONFIG-001`, and `DEP-002` |
+| Backend format/lint | `black --check .`; `flake8 app tests` in backend container | Pass | Fail: Black would reformat 1 file; Flake8 reports 5 × `E402` | `2026-09-18` | `QUALITY-001` |
+| Backend dependencies | `docker compose exec -T backend pip check` | Pass | Pass: no broken requirements found | `2026-09-18` | Command exit 0; runtime warning remains tracked as `DEP-002` |
+| Frontend install | `cd frontend && npm ci` | Pass | Pass: 287 packages installed/audited | `2026-09-18` | Command exit 0 |
+| Frontend lint | `cd frontend && npm run lint` | Pass | Pass (exit 0) | `2026-09-18` | ESLint completed without findings |
+| Frontend build | `cd frontend && npm run build` | Pass | Pass with warning: main JS 521.24 kB (162.85 kB gzip) | `2026-09-18` | `FE-007` |
+| Frontend dependency audit | `cd frontend && npm audit --omit=dev` | No known production vulnerabilities | Fail: 6 vulnerabilities (5 High, 1 Moderate) | `2026-09-18` | `DEP-001`; full audit reports 9 total (7 High, 2 Moderate) |
 | Playwright | `npx playwright test` | Pass | Not configured in the repository | `2026-09-18` | Tier 2B pending |
-| PostgreSQL/Redis integration | To be defined | Pass | Not run | `2026-09-18` | Integration harness pending |
-| Docker cold start | `docker compose up --build` | Healthy | Not run; Docker 29.5.2 and Compose 5.1.4 are available | `2026-09-18` | Baseline pending |
-| Migration upgrade/downgrade | To be defined against PostgreSQL | Pass | Not run | `2026-09-18` | Baseline pending |
+| PostgreSQL/Redis smoke | `pg_isready`; `redis-cli ping`; README seed command | Pass | Pass: PostgreSQL accepts connections, Redis returns `PONG`, seed created 100 users and 1,000 todos | `2026-09-18` | Counts verified directly in PostgreSQL |
+| Service HTTP smoke | `curl http://localhost:8000/health`; `curl -I http://localhost:3000` | Pass | Pass: backend reports healthy; frontend returns HTTP 200 | `2026-09-18` | Performed after manual backend restart |
+| Docker cold start | `docker compose up --build -d` from stopped stack | All services start reliably | Fail: backend exited on initial PostgreSQL connection; all services healthy only after `docker compose start backend` | `2026-09-18` | `INFRA-001` |
+| Migration upgrade/downgrade | `alembic upgrade head`; `alembic current` against PostgreSQL | Pass | Upgrade/current pass at `a0790c76a129 (head)`; downgrade intentionally not run against seeded baseline | `2026-09-18` | Migration was applied during backend startup |
+| Container hardening | `docker compose exec -T {backend,frontend} id`; port inspection | Non-root; data services not host-published | Fail: both app containers run as root; PostgreSQL and Redis bind to all host interfaces | `2026-09-18` | `INFRA-003`, `INFRA-004` |
 | Performance benchmark | See `docs/PERFORMANCE_REPORT.md` | Improvement documented | Not run | `2026-09-18` | Benchmark environment pending |
 
 ## Residual risks and accepted limitations

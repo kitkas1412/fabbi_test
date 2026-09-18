@@ -4,11 +4,11 @@
 
 | Field | Value |
 |---|---|
-| Scope/version | Baseline commit `c92fd72568b87dbc49d5f69293de1762ff66c175` plus uncommitted assessment documents |
+| Scope/version | Baseline commit `3d1936bfd55b3a6386b6cc74e092f0c6c684d5fe` |
 | Author | Nguyen Dinh Duc |
-| Test window | `2026-09-18` – TBD |
-| Environment | Local macOS baseline; Docker environment pending |
-| Overall result | Setup in progress; no manual cases executed |
+| Test window | `2026-09-18` – remediation retest pending |
+| Environment | macOS 26.6.2; Docker 29.5.2 / Compose 5.1.4; Compose application stack |
+| Overall result | Automated/infrastructure baseline completed; manual security cases not yet executed |
 
 ## 1. Objective
 
@@ -36,14 +36,14 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 
 | Component | Version/configuration | Status |
 |---|---|---|
-| Browser | Not selected | Not Ready |
-| Frontend | Node 24.17.0 / npm 11.13.0; `http://localhost:3000` | Dependencies and server not started |
-| Backend | System Python 3.14.7; application targets Python 3.12 | Dependencies and server not started |
-| PostgreSQL | Planned Compose image `postgres:16-alpine` | Not started |
-| Redis | Planned Compose image `redis:7` | Not started |
-| Docker | Docker 29.5.2 / Compose 5.1.4 | CLI available; stack not started |
+| Browser | HTTP smoke only; interactive browser not selected | Manual UI cases Not Ready |
+| Frontend | Host Node 24.17.0 / npm 11.13.0; `http://localhost:3000` | Running; lint and production build pass |
+| Backend | Container Python 3.12; host Python 3.14.7; `http://localhost:8000` | Running after one manual restart; health check passes |
+| PostgreSQL | Compose image `postgres:16-alpine` | Running; migration at head; 100 users and 1,000 todos seeded |
+| Redis | Compose image `redis:7` | Running; `PING` returns `PONG` |
+| Docker | Docker 29.5.2 / Compose 5.1.4 | Stack running; cold-start readiness defect reproduced |
 | OS | macOS 26.6.2 (Build 25G83) | Ready |
-| Commit | `c92fd72568b87dbc49d5f69293de1762ff66c175` | Baseline identified |
+| Commit | `3d1936bfd55b3a6386b6cc74e092f0c6c684d5fe` | Baseline executed |
 
 Required test identities:
 
@@ -58,10 +58,10 @@ Do not record real passwords or tokens in this document. Use disposable local te
 ## 4. Entry criteria
 
 - [x] Target commit is identified.
-- [ ] Required services are healthy.
-- [ ] Database migrations completed successfully.
+- [x] Required services are healthy after the documented manual backend restart.
+- [x] Database migrations completed successfully at `a0790c76a129 (head)`.
 - [ ] Test data can be reset deterministically.
-- [x] Automated smoke-test blocker is documented: local Python does not have `pytest` installed.
+- [x] Backend automated tests were executed in the project container: 9/9 passed.
 - [x] No production credentials or data are used in the initial review; tracked values are development placeholders.
 
 ## 5. Exit criteria
@@ -97,8 +97,8 @@ Do not record real passwords or tokens in this document. Use disposable local te
 | FE-01 | Session | Logout clears user-scoped client data | User A has loaded Todos | Logout; log in as B | No A data flashes or remains in cache/UI | High / Critical | `<actual>` | Not Run |
 | FE-02 | Error UX | Invalid login shows error without hard reload | Login page open | Submit wrong credentials | Stable error is shown; form remains usable | Medium / Major | `<actual>` | Not Run |
 | FE-03 | Optimistic UI | Failed update rolls back | Simulate update failure | Toggle/edit Todo | UI restores previous value and reports failure | Medium / Major | `<actual>` | Not Run |
-| INFRA-01 | Startup | Clean Docker cold start is dependable | Volumes/services stopped | Start stack from clean state repeatedly | Dependencies become healthy and backend starts without race failure | High / Major | `<actual>` | Not Run |
-| INFRA-02 | Security | Production config does not expose DB/cache or default secrets | Production Compose rendered | Inspect config and container metadata | No published DB/cache port or embedded default secret | High / Security | `<actual>` | Not Run |
+| INFRA-01 | Startup | Clean Docker cold start is dependable | Volumes/services stopped | Start stack from clean state repeatedly | Dependencies become healthy and backend starts without race failure | High / Major | Backend exited on its first PostgreSQL connection and required a manual restart | Fail (`INFRA-001`) |
+| INFRA-02 | Security | Production config does not expose DB/cache or default secrets | Production Compose rendered | Inspect config and container metadata | No published DB/cache port or embedded default secret | High / Security | Current Compose embeds development credentials, publishes PostgreSQL/Redis, and runs app containers as root | Fail (`INFRA-002`–`INFRA-004`) |
 | TAG-01 | Tier 4 | Duplicate tag names ignore casing per user | Tier 4 enabled; User A logged in | Create `Work`, then `work` | Second create is rejected consistently | Medium / Major | `<actual>` | Not Run |
 | TAG-02 | Tier 4 | Cross-user tag attach is rejected | A owns Todo; B owns tag | Attempt cross-user attach | Request fails; no relation is created | High / Critical | `<actual>` | Not Run |
 | FILTER-01 | Tier 4 | Combined filters return correct stable page | Tagged Todos across dates/statuses | Apply tag, status, keyword and date filters | Only matching records, stable order and correct total | Medium / Major | `<actual>` | Not Run |
@@ -111,18 +111,29 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | Run ID | Date/time | Commit | Environment | Executor | Scope | Result | Evidence |
 |---|---|---|---|---|---|---|---|
 | RUN-001 | `2026-09-18` | `c92fd72` | Local macOS / Python 3.14.7 | Nguyen Dinh Duc with Codex assistance | Backend automated-test baseline | Blocked before collection: `pytest` is not installed | Command output: `No module named pytest` |
+| RUN-002 | `2026-09-18 12:13 +07:00` | `3d1936b` | Docker Compose 5.1.4 | Nguyen Dinh Duc with Codex assistance | Compose validation and cold start | **Fail**: config valid and images build, but backend exits before PostgreSQL is ready; manual restart succeeds | Backend log: `ConnectionRefusedError` to PostgreSQL; `INFRA-001` |
+| RUN-003 | `2026-09-18 12:15 +07:00` | `3d1936b` | Backend container / Python 3.12 | Nguyen Dinh Duc with Codex assistance | Pytest regression baseline | **Pass with warnings**: 9/9 passed in 1.86s; 3 compatibility/deprecation warning groups | `TEST-003`, `CONFIG-001`, `DEP-002` |
+| RUN-004 | `2026-09-18 12:15 +07:00` | `3d1936b` | Backend container | Nguyen Dinh Duc with Codex assistance | Black, Flake8, dependency consistency | **Fail**: Black 1 file; Flake8 5 × `E402`; `pip check` passes | `QUALITY-001`; `No broken requirements found` |
+| RUN-005 | `2026-09-18 12:16 +07:00` | `3d1936b` | Host Node 24.17.0 / npm 11.13.0 | Nguyen Dinh Duc with Codex assistance | Frontend install, lint, build | **Pass with warning**: `npm ci`, lint and build pass; main JS is 521.24 kB | `FE-007` |
+| RUN-006 | `2026-09-18 12:17 +07:00` | `3d1936b` | Host npm audit | Nguyen Dinh Duc with Codex assistance | Frontend dependency security | **Fail**: production audit reports 6 vulnerabilities (5 High, 1 Moderate); full tree reports 9 | `DEP-001` |
+| RUN-007 | `2026-09-18 12:20 +07:00` | `3d1936b` | PostgreSQL 16 / Redis 7 / Compose stack | Nguyen Dinh Duc with Codex assistance | Migration, health, seed, runtime smoke | **Pass with warning**: migration at head, DB/Redis/HTTP healthy, 100 users and 1,000 todos seeded; password hash emits passlib/bcrypt error log | `DEP-002`; direct DB counts `users=100`, `todos=1000` |
+| RUN-008 | `2026-09-18 12:20 +07:00` | `3d1936b` | Compose containers | Nguyen Dinh Duc with Codex assistance | Container privilege and exposed-port check | **Fail**: backend/frontend run as root; PostgreSQL/Redis published on all host interfaces | `INFRA-003`, `INFRA-004` |
 
 ## 8. Defect log
 
 | Test case | Bug ID | Summary | Severity | Retest status |
 |---|---|---|---|---|
-| `<case ID>` | `<BUG ID>` | `<summary>` | `<severity>` | `<status>` |
+| INFRA-01 | INFRA-001 | Backend loses the Compose cold-start race with PostgreSQL | High | Pending fix |
+| INFRA-02 | INFRA-002 | Development credentials are embedded in tracked Compose configuration | High | Pending fix |
+| INFRA-02 | INFRA-003 | PostgreSQL and unauthenticated Redis are published to the host | High | Pending fix |
+| INFRA-02 | INFRA-004 | Backend and frontend containers run as root | Medium | Pending fix |
 
 ## 9. Known limitations and residual risk
 
-- Backend dependencies are not installed in the local system Python environment.
-- The project targets Python 3.12, while the current system interpreter is Python 3.14.7; use a project virtual environment or Docker for reproducible verification.
-- PostgreSQL, Redis, backend, and frontend services have not yet been started for this assessment run.
+- Backend dependencies are not installed in the local system Python environment; Docker is the reproducible backend test environment.
+- The project targets Python 3.12, while the current system interpreter is Python 3.14.7.
+- The stack is currently running, but the backend does not survive a clean cold start reliably without a manual restart.
+- Seed data is suitable for local smoke/benchmark preparation but is randomly generated and is not a deterministic reset fixture.
 - Playwright and frontend unit/component tests are not configured yet.
 - Existing backend tests use SQLite and a Redis mock, so PostgreSQL/Redis integration coverage must be added separately.
 
@@ -130,5 +141,5 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 
 | Role | Name | Decision | Date | Notes |
 |---|---|---|---|---|
-| Author | Nguyen Dinh Duc | Pending | `2026-09-18` | Initial structure and environment metadata recorded; execution pending |
+| Author | Nguyen Dinh Duc | Pending | `2026-09-18` | Baseline recorded; remediation and manual security execution pending |
 | Reviewer | `<name>` | Pending | `<date>` | — |
