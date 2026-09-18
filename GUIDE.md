@@ -45,8 +45,11 @@ cd fabbi
 # Copy environment variables
 cp .env.example .env
 
+# Replace every replace-with-* placeholder. Keep DATABASE_URL/REDIS_URL in sync
+# with the service credentials; URL-encode special characters in the URLs.
+
 # Start all services
-docker-compose up --build
+docker compose up --build --wait
 
 # Seed the database with a demo user and sample TODOs
 docker compose exec backend python -m app.db.seed
@@ -61,6 +64,13 @@ The application will be available at:
   - Email: `demo@test.com`
   - Password: `Demo@123`
 
+PostgreSQL and Redis are available only to services on the Compose network; they
+are intentionally not published to the host. Administer them through
+`docker compose exec postgres psql ...` or
+`docker compose exec redis redis-cli --askpass`. The backend and frontend wait
+for healthy dependencies and run as non-root users. The local `.env` file is
+ignored by Git; never commit it.
+
 By default the seed command creates 100 users and 1,000 TODOs so the assessment is quick to set up. To test performance with a larger dataset, pass seed variables explicitly:
 
 ```bash
@@ -68,6 +78,10 @@ docker compose exec -e SEED_USERS=10000 -e SEED_TODOS=1000000 backend python -m 
 ```
 
 ### Local Development (without Docker)
+
+The default Compose stack does not expose PostgreSQL or Redis. For a host-run
+backend, start separate local data services and set `DATABASE_URL` and
+`REDIS_URL` to their `localhost` endpoints.
 
 #### Backend
 

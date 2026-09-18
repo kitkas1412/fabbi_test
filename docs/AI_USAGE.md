@@ -41,6 +41,7 @@ Record material assistance, not every autocomplete event. Group closely related 
 | AI-013 | `2026-09-18` | Playwright Journey 1 | Implement the full register/login and Todo lifecycle browser journey with disposable credentials, API-status assertions, stable accessible locators, and post-delete verification | `frontend/e2e/todo-lifecycle.spec.ts`, Todo item accessibility, Playwright port, and assessment evidence | Journey 1 accepted into the worktree; cross-user Journey 2 remains pending | Full Playwright suite 2/2; unit tests 2/2; ESLint/build pass against current Docker backend/PostgreSQL/Redis |
 | AI-014 | `2026-09-18` | Playwright Journey 2 | Implement two-session cross-user isolation with disposable accounts, UI/list assertions, B's GET/PUT/DELETE denial, owner-integrity verification, and Todo cleanup | `frontend/e2e/cross-user-isolation.spec.ts` and assessment evidence | Journey 2 accepted into the worktree; Tier 2B now complete | Full Playwright suite 3/3 using three workers; unit tests 2/2; ESLint/build pass against current Docker backend/PostgreSQL/Redis |
 | AI-015 | `2026-09-18` | Deterministic E2E data | Replace timestamp data with fixed retry-indexed fixtures, add an allowlisted transactional reset, chain reset into headless/headed/UI scripts, and document exact commands | Backend E2E reset utility, frontend fixture data, package scripts, GUIDE, README, and assessment evidence | Deterministic setup accepted into the worktree | Two consecutive headless runs pass 3/3; second reset deletes prior fixtures; headed `--list` resets and lists 3 tests; Black/Flake8 pass for reset utility |
+| AI-016 | `2026-09-18` | Infrastructure hardening | Add health-gated startup, scoped Docker contexts, non-root/multi-stage images, required external configuration, authenticated Redis, and internal-only data-service ports | Compose, Dockerfiles, backend settings/tests, environment templates, GUIDE, and assessment evidence | Tier 3B implementation accepted into the worktree | Compose config/build/cold start pass; all services healthy; app UIDs 999/1000; Redis rejects no-auth; backend 22/22, frontend tests/lint/build pass |
 
 If full prompt logs are required, store sanitized logs under `docs/ai-prompts/` and link them here. Never include secrets, access tokens, personal data, private URLs, or hidden evaluation material.
 
@@ -53,6 +54,7 @@ If full prompt logs are required, store sanitized logs under `docs/ai-prompts/` 
 | Keep Todo Sharing as specification-only work | Flagged README's explicit instruction not to implement Task 3A | Adopted to prevent scope expansion | `docs/TODO_SHARING_SPEC.md` |
 | Track assessment documents while keeping the answer key ignored | Identified the conflict between required `docs/` deliverables and the root ignore rule | Adopted; removed broad `docs/` ignore and retained `docs/ANSWER_KEY.md` | `git check-ignore` verification |
 | Keep backend dependencies managed by `requirements.txt` | Identified that the three-line `uv.lock` was generated incidentally, targeted Python 3.13, and was not used by Docker or setup instructions | Adopted; removed the lockfile in standalone commit `23b039e` and used `uv --no-project` only as an isolated test runner | Docker targets Python 3.12; Black targets `py312`; full backend rerun passes on Python 3.12.12 |
+| Keep data services internal by default | Recommended removing PostgreSQL/Redis host publications instead of merely binding them to localhost, while preserving administration through `docker compose exec` | Adopted; host-run backend development must use separate local services or an explicit override | `docker compose ps` shows only container ports; GUIDE documents the operational tradeoff |
 
 ## 5. Generated or substantially assisted artefacts
 
@@ -65,12 +67,13 @@ If full prompt logs are required, store sanitized logs under `docs/ai-prompts/` 
 | `docs/TODO_SHARING_SPEC.md` | Specification skeleton | Product/security/backend decisions pending | Structure compared with README and provided template |
 | `docs/PERFORMANCE_REPORT.md` | Benchmark-report structure | Measured PostgreSQL data pending | No performance conclusion has been claimed |
 | `docs/AI_USAGE.md` | Disclosure structure and ongoing assistance log | Candidate confirmation and final sign-off pending | Cross-checked against material assistance, Git history, and recorded verification |
-| Backend auth/Todo/cache source and tests | Regression design and implementation assistance | Candidate review remains required | Python 3.12.12 suite 19/19; Black and unfiltered Flake8 pass; integration limitations documented |
+| Backend auth/Todo/cache/config source and tests | Regression design and implementation assistance | Candidate review remains required | Current non-root Python 3.12.14 container suite 22/22; Black and unfiltered Flake8 pass; integration limitations documented |
 | Frontend auth/query/session source and tests | Query-key/session design and implementation assistance | Candidate review remains required | Unit tests 2/2, ESLint pass, production build pass |
 | Frontend Playwright setup and smoke test | Dependency/configuration and test scaffolding assistance | Both required journeys complete; candidate review pending | Playwright 1.63.0 suite 3/3; headless/headed/UI commands documented |
 | Frontend Playwright lifecycle Journey 1 | Browser-flow implementation, disposable data, and evidence synchronization | Candidate review pending | Registration/login and create/edit/complete/delete/logout pass; final deleted-resource GET returns 404 |
 | Frontend Playwright cross-user Journey 2 | Two-context authorization/isolation flow and evidence synchronization | Candidate review pending | B list/UI excludes A data; B GET/PUT/DELETE return 404; A Todo remains unchanged; suite 3/3 passes |
 | Deterministic Playwright data setup | Allowlisted reset design, retry-indexed fixtures, scripts, and documentation | Candidate review pending | Exact 9-email reset; two back-to-back headless runs and headed command listing pass |
+| Docker/Compose infrastructure hardening | Readiness, build-context, privilege, secret/configuration, Redis-auth, and port-isolation implementation | Candidate review pending | Cold start/build pass; four services healthy; non-root IDs and Redis auth verified; backend/frontend regressions pass |
 
 Add source code and test files to this table when AI materially contributes to them.
 
@@ -90,8 +93,8 @@ Add source code and test files to this table when AI materially contributes to t
 - [x] Ran relevant frontend lint/build/tests.
 - [ ] Ran PostgreSQL/Redis integration checks where mocks are insufficient.
 - [ ] Reviewed migrations and rollback behavior.
-- [ ] Validated Docker/runtime configuration.
-- [ ] Removed secrets, personal data, and private context from prompt logs.
+- [x] Validated Docker/runtime configuration.
+- [x] Removed tracked environment files and verified no real secrets, personal data, or private context were added.
 - [ ] Recorded checks that could not be run and why.
 
 ## 8. Limitations
@@ -100,7 +103,7 @@ Add source code and test files to this table when AI materially contributes to t
 - Suggested security controls require threat-model and integration review.
 - Suggested database indexes require measured PostgreSQL evidence.
 - Fixed auth, ownership, partial-update, cache, and frontend-session findings now have automated regression evidence; unresolved findings remain primarily baseline/static or manual observations.
-- The first backend test attempt was blocked because the system Python environment lacked `pytest`; the latest run used isolated `uv --no-project` execution on Python 3.12.12 and passed 19/19 without recreating `uv.lock`.
+- The first backend test attempt was blocked because the system Python environment lacked `pytest`; an isolated `uv --no-project` Python 3.12.12 run passed 19/19 without recreating `uv.lock`, and the latest non-root container run passes 22/22 after adding required-secret regressions.
 - Backend cache tests use a stateful Redis mock; PostgreSQL/Redis integration and concurrency evidence are still pending.
 - Both required Playwright journeys pass; same-context account-switch cache behavior still has unit coverage only.
 - Candidate review, identity spelling confirmation, and final attestation are pending.

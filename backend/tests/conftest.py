@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 # its engine at import time. These imports are intentionally delayed (E402).
 TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL
+os.environ["REDIS_URL"] = "redis://localhost:6379/0"
+os.environ["JWT_SECRET"] = "test-only-jwt-secret"
 
 from app.api.deps import get_redis  # noqa: E402
 from app.core.security import create_access_token  # noqa: E402

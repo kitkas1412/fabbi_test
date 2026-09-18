@@ -4,11 +4,11 @@
 
 | Field | Value |
 |---|---|
-| Scope/version | HEAD `f214cc0489cdfcc348c434864bc1caa6bcaeb3cc` plus pending deterministic E2E data setup |
+| Scope/version | HEAD `cba9e0d2e5aca2a8b722f29e6cc5f81c97928c05` plus pending infrastructure hardening |
 | Author | Nguyen Dinh Duc |
 | Test window | `2026-09-18` – automated remediation and both required E2E journeys complete; remaining manual execution pending |
 | Environment | macOS 26.6.2; Docker 29.5.2 / Compose 5.1.4; Compose application stack |
-| Overall result | Backend/frontend regressions and both required Playwright journeys pass; remaining manual and infrastructure work is pending |
+| Overall result | Backend/frontend regressions, both Playwright journeys, and Tier 3B infrastructure checks pass; remaining manual work is pending |
 
 ## 1. Objective
 
@@ -38,12 +38,12 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 |---|---|---|
 | Browser | Playwright 1.63.0 / Chromium 153.0.8010.12 | Suite 3/3 passes; both required Tier 2B journeys complete |
 | Frontend | Host Node 24.17.0 / npm 11.13.0; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 2/2, Playwright 3/3, lint, and production build pass |
-| Backend | Container Python 3.12; isolated host Python 3.12.12 test environment; `http://localhost:8000` | Regression suite 19/19, Black, and unfiltered Flake8 pass; Compose baseline still requires a manual backend restart |
+| Backend | Non-root container Python 3.12.14; isolated host Python 3.12.12; `http://localhost:8000` | Regression suite 22/22, Black, and unfiltered Flake8 pass; backend health-gated cold start passes |
 | PostgreSQL | Compose image `postgres:16-alpine` | Running; migration at head; 100 users and 1,000 todos seeded |
-| Redis | Compose image `redis:7` | Running; `PING` returns `PONG`; Journey 1/2 real-cache paths pass |
-| Docker | Docker 29.5.2 / Compose 5.1.4 | Stack running; cold-start readiness defect reproduced |
+| Redis | Compose image `redis:7-alpine` | Healthy with password authentication; unauthenticated commands are rejected; Journey 1/2 real-cache paths pass |
+| Docker | Docker 29.5.2 / Compose 5.1.4 | Four services healthy; readiness order, non-root app users, and internal-only data ports verified |
 | OS | macOS 26.6.2 (Build 25G83) | Ready |
-| Commit | `92d83dd4b8c65affa0fb32d34c2be8e9c29e87f8` plus pending Journey 2 worktree | Automated remediation and both required browser journeys executed |
+| Commit | `cba9e0d2e5aca2a8b722f29e6cc5f81c97928c05` plus pending infrastructure worktree | Automated remediation, browser journeys, and infrastructure verification executed |
 
 Required test identities:
 
@@ -59,10 +59,10 @@ Do not record real passwords or tokens in this document. Use disposable local te
 ## 4. Entry criteria
 
 - [x] Target commit is identified.
-- [x] Required services are healthy after the documented manual backend restart.
+- [x] Required services become healthy on a cold start without a manual restart.
 - [x] Database migrations completed successfully at `a0790c76a129 (head)`.
 - [x] Test data resets deterministically through an exact email allowlist before headless/headed/UI runs.
-- [x] Backend automated tests were executed after remediation: 19/19 passed.
+- [x] Backend automated tests were executed after remediation: 22/22 passed.
 - [x] Backend Black and unfiltered Flake8 gates pass on the remediated tree.
 - [x] Frontend query-isolation/session-cleanup unit tests were executed: 2/2 passed.
 - [x] Frontend lint and production build pass; the bundle-size warning remains tracked as `FE-007`.
@@ -104,8 +104,8 @@ Do not record real passwords or tokens in this document. Use disposable local te
 | FE-02 | Error UX | Invalid login shows error without hard reload | Login page open | Submit wrong credentials | Stable error is shown; form remains usable | Medium / Major | `<actual>` | Not Run |
 | FE-03 | Optimistic UI | Failed update rolls back | Simulate update failure | Toggle/edit Todo | UI restores previous value and reports failure | Medium / Major | `<actual>` | Not Run |
 | FE-04 | Query isolation | Todo query identity includes account and pagination | Query key factory available | Compare keys for different users, pages, and sizes | Every response-changing input produces a distinct key | High / Critical | Node unit regression confirms distinct keys for user, page, and size | Pass (Unit) |
-| INFRA-01 | Startup | Clean Docker cold start is dependable | Volumes/services stopped | Start stack from clean state repeatedly | Dependencies become healthy and backend starts without race failure | High / Major | Backend exited on its first PostgreSQL connection and required a manual restart | Fail (`INFRA-001`) |
-| INFRA-02 | Security | Production config does not expose DB/cache or default secrets | Production Compose rendered | Inspect config and container metadata | No published DB/cache port or embedded default secret | High / Security | Current Compose embeds development credentials, publishes PostgreSQL/Redis, and runs app containers as root | Fail (`INFRA-002`–`INFRA-004`) |
+| INFRA-01 | Startup | Clean Docker cold start is dependable | Services stopped; environment configured | Run `docker compose up -d --build --wait` | Dependencies become healthy and backend starts without race failure | High / Major | Health order observed: PostgreSQL/Redis → backend → frontend; all services healthy without restart | Pass (Integration) |
+| INFRA-02 | Security | Runtime config isolates data services and app privileges | Compose rendered and running | Inspect config, ports, UIDs, and Redis auth | No published DB/cache port or tracked secret; apps non-root; Redis requires auth | High / Security | No DB/cache host bindings; tracked `.env` removed; UIDs 999/1000; unauthenticated Redis returns `NOAUTH` | Pass (Integration) |
 | TAG-01 | Tier 4 | Duplicate tag names ignore casing per user | Tier 4 enabled; User A logged in | Create `Work`, then `work` | Second create is rejected consistently | Medium / Major | `<actual>` | Not Run |
 | TAG-02 | Tier 4 | Cross-user tag attach is rejected | A owns Todo; B owns tag | Attempt cross-user attach | Request fails; no relation is created | High / Critical | `<actual>` | Not Run |
 | FILTER-01 | Tier 4 | Combined filters return correct stable page | Tagged Todos across dates/statuses | Apply tag, status, keyword and date filters | Only matching records, stable order and correct total | Medium / Major | `<actual>` | Not Run |
@@ -132,15 +132,16 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | RUN-013 | `2026-09-18` | `33bac3f` + Journey 1 worktree | Playwright 1.63.0 / Chromium 153.0.8010.12 / Vite 4173 / current Docker backend, PostgreSQL, and Redis | Nguyen Dinh Duc with Codex assistance | Lifecycle Journey 1 plus frontend regression | **Pass with warnings**: Playwright 2/2, unit tests 2/2, ESLint and build pass; dialogs emit accessibility warnings and bundle is 521.53 kB | Register → logout/login → create → edit → complete → delete → GET 404 → logout; Journey 2 pending |
 | RUN-014 | `2026-09-18` | `92d83dd` + Journey 2 worktree | Playwright 1.63.0 / Chromium 153.0.8010.12 / Vite 4173 / current Docker backend, PostgreSQL, and Redis | Nguyen Dinh Duc with Codex assistance | Cross-user Journey 2 and full frontend regression | **Pass with warnings**: Playwright 3/3 in 11.8s using 3 workers, unit tests 2/2, ESLint and build pass; dialog and bundle warnings remain | B list/UI excludes A's Todo; B GET/PUT/DELETE return 404; A's Todo remains unchanged; Tier 2B complete |
 | RUN-015 | `2026-09-18` | `f214cc0` + deterministic-data worktree | Docker backend/PostgreSQL/Redis; Playwright 1.63.0 / Chromium 153.0.8010.12 / Vite 4173 | Nguyen Dinh Duc with Codex assistance | Deterministic reset and headless/headed commands | **Pass with warnings**: two consecutive headless runs pass 3/3; second reset deletes 3 previous fixture users; headed `--list` resets them again and lists all 3 tests | Exact 9-email allowlist covers attempt/retries 0–2; reset requires `E2E_ALLOW_RESET=1`; dialog warnings remain |
+| RUN-016 | `2026-09-18` | `cba9e0d` + infrastructure worktree | Docker 29.5.2 / Compose 5.1.4; Python 3.12.14; Node 20 image | Nguyen Dinh Duc with Codex assistance | Tier 3B build, cold start, privilege, network/auth, and regression checks | **Pass with warnings**: all services healthy in dependency order; non-root UIDs; internal-only DB/cache ports; Redis rejects no-auth; backend 22/22, Black/Flake8, frontend 2/2/lint/build pass; existing bundle/deprecation warnings remain | `AUTH-005`, `INFRA-001`–`INFRA-005` verified; first container pytest exposed and led to fixing working-directory/cache ownership |
 
 ## 8. Defect log
 
 | Test case | Bug ID | Summary | Severity | Retest status |
 |---|---|---|---|---|
-| INFRA-01 | INFRA-001 | Backend loses the Compose cold-start race with PostgreSQL | High | Pending fix |
-| INFRA-02 | INFRA-002 | Development credentials are embedded in tracked Compose configuration | High | Pending fix |
-| INFRA-02 | INFRA-003 | PostgreSQL and unauthenticated Redis are published to the host | High | Pending fix |
-| INFRA-02 | INFRA-004 | Backend and frontend containers run as root | Medium | Pending fix |
+| INFRA-01 | INFRA-001 | Backend loses the Compose cold-start race with PostgreSQL | High | Passed after healthchecks and readiness-aware dependencies |
+| INFRA-02 | INFRA-002 | Development credentials are embedded in tracked Compose configuration | High | Passed after removing tracked `.env` files and requiring ignored environment config |
+| INFRA-02 | INFRA-003 | PostgreSQL and unauthenticated Redis are published to the host | High | Passed after removing host ports and enabling Redis authentication |
+| INFRA-02 | INFRA-004 | Backend and frontend containers run as root | Medium | Passed with non-root `app`/`node` users and scoped build contexts |
 | AUTH-04 | AUTH-001 | Expired access tokens were accepted | Critical | Automated retest passed for `/auth/me`; manual endpoint matrix pending |
 | AUTH-06 | AUTH-002 | Refresh tokens could access protected endpoints | Critical | Automated retest passed for `/auth/me`; manual endpoint matrix pending |
 | TODO-02/03/04 | TODO-001 | Todo item operations were not owner-scoped | Critical | Automated retest passed |
@@ -151,7 +152,7 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 ## 9. Known limitations and residual risk
 
 - Backend dependencies are not installed in the default system environment; the latest remediation run used isolated `uv --no-project` execution on Python 3.12.12, matching the project's Python 3.12 target without creating a project `uv.lock`.
-- The stack is currently running, but the backend does not survive a clean cold start reliably without a manual restart.
+- PostgreSQL and Redis are intentionally not reachable from the host through the default Compose file; host-run backend development requires separate local data services or an explicit local-only override.
 - Seed data is suitable for local smoke/benchmark preparation but is randomly generated and is not a deterministic reset fixture.
 - Both required Playwright journeys use fixed retry-indexed fixtures. The npm headless/headed/UI commands reset the exact allowlist before execution; concurrent suites against one backend are unsupported because they share that namespace.
 - Existing backend tests use SQLite and a Redis mock, so PostgreSQL/Redis integration coverage must be added separately.

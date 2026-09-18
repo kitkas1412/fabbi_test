@@ -7,8 +7,8 @@
 | Assessment branch | `assessment/nguyen-dinh-duc` |
 | Author | Nguyen Dinh Duc |
 | Review date | `2026-09-18` |
-| Application version/commit | `f214cc0489cdfcc348c434864bc1caa6bcaeb3cc` plus pending deterministic E2E data setup |
-| Overall status | Core auth, Todo isolation/update/cache, and frontend session remediations implemented; remaining findings are tracked below |
+| Application version/commit | `cba9e0d2e5aca2a8b722f29e6cc5f81c97928c05` plus pending infrastructure hardening |
+| Overall status | Core remediation, required E2E journeys, and Tier 3B infrastructure hardening are implemented; remaining findings are tracked below |
 
 ## Purpose
 
@@ -35,7 +35,7 @@ No Critical or High issue may remain Deferred for final submission.
 | AUTH-002 | JWT | Access dependencies do not enforce token type | Critical | `backend/app/api/deps.py::get_current_user` | Verified | `834bcf9` | `test_refresh_token_cannot_authenticate_access_endpoint`; backend suite 19/19 passes |
 | AUTH-003 | Session | Refresh rotation/revocation and logout are ineffective | High | `backend/app/api/v1/auth.py` | Open | — | `<test/evidence>` |
 | AUTH-004 | Authentication | Login response enables user enumeration | Medium | `backend/app/api/v1/auth.py::login` | Open | — | `<test/evidence>` |
-| AUTH-005 | Configuration | Default JWT secret can be used outside a safe local profile | High | `backend/app/core/config.py` | Open | — | `<test/evidence>` |
+| AUTH-005 | Configuration | Default JWT secret can be used outside a safe local profile | High | `backend/app/core/config.py` | Verified | Pending commit | Sensitive settings have no source fallback; three parameterized regressions require database, Redis, and JWT configuration |
 | TODO-001 | Authorization | Todo detail/update/delete are not owner-scoped | Critical | `backend/app/api/v1/todos.py` | Verified | `16cda47` | API regression and Playwright Journey 2 confirm cross-user GET/PUT/DELETE return 404 and owner data remains unchanged |
 | TODO-002 | Update | `completed=false` is ignored | High | `backend/app/api/v1/todos.py::update_existing_todo` | Verified | `0ff4674` | `test_partial_update_can_set_completed_to_false`; backend suite 19/19 passes |
 | TODO-003 | Update | An omitted description can be overwritten with `null` | High | `backend/app/api/v1/todos.py::update_existing_todo` | Verified | `0ff4674` | `test_partial_update_preserves_omitted_description`; backend suite 19/19 passes |
@@ -53,12 +53,12 @@ No Critical or High issue may remain Deferred for final submission.
 | FE-004 | Authentication | Global 401 handling reloads login and can hide form errors | Medium | `frontend/src/lib/api.ts` | Open | — | `<test/evidence>` |
 | FE-005 | Pagination | Frontend requests 10,000 Todos by default | Medium | `frontend/src/features/todos/api/todos.ts::useTodos` | Open | — | `<test/evidence>` |
 | FE-006 | React | Todo rows use array indexes as keys | Low | `frontend/src/features/todos/components/TodoList.tsx` | Open | — | `<test/evidence>` |
-| INFRA-001 | Startup | Compose has no dependency healthchecks/readiness conditions | High | `docker-compose.yml` | Open | — | Cold start: backend exited with PostgreSQL `ConnectionRefusedError`; it started only after a manual restart once PostgreSQL was ready |
-| INFRA-002 | Secrets | Development credentials are embedded in tracked configuration | High | Compose, settings, tracked `.env` files | Open | — | `<scan/evidence>` |
-| INFRA-003 | Network | PostgreSQL and unauthenticated Redis are published to the host | High | `docker-compose.yml` | Open | — | `docker compose ps -a` shows host bindings on `0.0.0.0:5432` and `0.0.0.0:6379` |
-| INFRA-004 | Containers | Images run as root and lack scoped `.dockerignore` files | Medium | Backend/frontend Dockerfiles | Open | — | `docker compose exec ... id` returns `uid=0(root)` for both images; no `.dockerignore` exists |
-| INFRA-005 | Build | Frontend build is not reproducible and runtime Vite env is ineffective | Medium | Frontend Dockerfile and Compose | Open | — | `<build evidence>` |
-| TEST-001 | Coverage | Existing tests cover happy paths but not security boundaries | High | `backend/tests/` | Verified | `cea96fd`, `5816658` | Suite now covers expiry, token type, cross-user CRUD, cache isolation/invalidation, and partial updates; 19/19 pass |
+| INFRA-001 | Startup | Compose has no dependency healthchecks/readiness conditions | High | `docker-compose.yml` | Verified | Pending commit | Cold start with `docker compose up -d --build --wait` gates backend on healthy PostgreSQL/Redis and frontend on healthy backend; all four services become healthy |
+| INFRA-002 | Secrets | Development credentials are embedded in tracked configuration | High | Compose, settings, tracked `.env` files | Verified | Pending commit | Tracked `.env` files removed; Compose requires database, Redis, and JWT values from ignored local environment configuration |
+| INFRA-003 | Network | PostgreSQL and unauthenticated Redis are published to the host | High | `docker-compose.yml` | Verified | Pending commit | `docker compose ps` shows only internal `5432/tcp` and `6379/tcp`; unauthenticated `redis-cli ping` returns `NOAUTH` |
+| INFRA-004 | Containers | Images run as root and lack scoped `.dockerignore` files | Medium | Backend/frontend Dockerfiles | Verified | Pending commit | Backend runs as `uid=999(app)`, frontend as `uid=1000(node)`; scoped ignore files reduce contexts to application inputs and exclude nested caches |
+| INFRA-005 | Build | Frontend build is not reproducible and runtime Vite env is ineffective | Medium | Frontend Dockerfile and Compose | Verified | Pending commit | Image build uses `npm ci`; `VITE_API_URL` is supplied as a build argument; production image build passes |
+| TEST-001 | Coverage | Existing tests cover happy paths but not security boundaries | High | `backend/tests/` | Verified | `cea96fd`, `5816658` | Suite now covers expiry, token type, cross-user CRUD, cache isolation/invalidation, partial updates, and required secrets; 22/22 pass |
 | TEST-002 | Fidelity | SQLite and per-request Redis mocks do not validate production behavior | Medium | `backend/tests/conftest.py` | Open | — | Journeys 1/2 add PostgreSQL/real-Redis browser paths; a dedicated integration and concurrency suite is still pending |
 | TEST-003 | Test maintenance | Custom async event-loop fixture is deprecated and will become an error | Low | `backend/tests/conftest.py:28` | Open | — | `pytest tests/ -v` emits `DeprecationWarning` from `pytest-asyncio` |
 | CONFIG-001 | Backend compatibility | Pydantic class-based `Config` is deprecated before Pydantic v3 | Low | `backend/app/core/config.py` | Open | — | `pytest tests/ -v` emits `PydanticDeprecatedSince20` |
@@ -104,11 +104,11 @@ Copy this section once per finding or link the register row to the corresponding
 |---|---|---|---|
 | Tier 1: report impactful findings | This document and final PR description | `<PR link>` | In Progress |
 | Tier 1: at least five fixes, including two backend and one frontend | Finding register and implementation commits | AUTH-001/002, TODO-001/002/003, CACHE-001/002, FE-001/002/003 | Minimum implementation met; final PR evidence pending |
-| Tier 2A: at least three backend critical scenarios | `backend/tests/` | 19/19 pass, including ten security/correctness/cache regression cases | Complete |
+| Tier 2A: at least three backend critical scenarios | `backend/tests/` | 22/22 pass, including security/correctness/cache and required-secret regressions | Complete |
 | Tier 2B: two required Playwright scenarios | `frontend/e2e/` and `frontend/playwright.config.ts` | Lifecycle Journey 1 and cross-user isolation Journey 2 pass | Complete (2/2 journeys) |
 | Tier 2C: manual test plan | `docs/TEST_PLAN.md` | Matrix and automated evidence updated; manual execution pending | In Progress |
 | Tier 3A: Todo Sharing specification only | `docs/TODO_SHARING_SPEC.md` | Draft structure created; specification decisions pending | In Progress |
-| Tier 3B: at least three infrastructure improvements | Compose/Docker changes | `<validation>` | Not Started |
+| Tier 3B: at least three infrastructure improvements | Compose/Docker changes | Healthy cold start; non-root UIDs; authenticated/internal-only data services; scoped build contexts | Complete (5 improvements) |
 | Tier 3C: query analysis, migration, benchmark, tradeoffs | Migration and `docs/PERFORMANCE_REPORT.md` | `<plans/results>` | Not Started |
 | Git workflow and PR submission | Atomic Conventional Commits and final PR | `<git log/PR>` | In Progress |
 | AI disclosure | `docs/AI_USAGE.md` | Assistance log updated through backend/frontend remediation | In Progress |
@@ -118,8 +118,8 @@ Copy this section once per finding or link the register row to the corresponding
 
 | Check | Command/environment | Expected | Actual | Date | Evidence |
 |---|---|---|---|---|---|
-| Compose validation | `docker compose config -q` | Pass | Pass (exit 0) | `2026-09-18` | Rendered Compose configuration is valid |
-| Backend tests | `docker compose exec -T backend pytest tests/ -v` | Pass | Pass: 9 collected, 9 passed in 1.86s; 3 deprecation warnings | `2026-09-18` | Warnings linked to `TEST-003`, `CONFIG-001`, and `DEP-002` |
+| Compose validation | `docker compose --env-file .env.example config -q` | Pass | Pass (exit 0) | `2026-09-18` | Required secret variables resolve from the documented template; rendered Compose is valid |
+| Backend tests | `docker compose exec -T backend pytest tests/ -v` | Pass | Pass in non-root Python 3.12.14 container: 22/22 in 4.51s; 3 deprecation warnings | `2026-09-18` | Includes three required-secret regressions; warnings linked to `TEST-003`, `CONFIG-001`, and `DEP-002` |
 | Backend regression suite | `uv run --python 3.12 --isolated --no-project --with-requirements requirements.txt pytest tests/ -v` | Pass | Pass on Python 3.12.12: 19 collected, 19 passed; 3 deprecation warning groups | `2026-09-18` | Covers AUTH-001/002, TODO-001/002/003, CACHE-001/002; SQLite and stateful Redis mock only |
 | Backend format/lint | `black --check .`; `flake8 app tests` | Pass | Black passes for all 28 Python files; unfiltered Flake8 completes without findings | `2026-09-18` | `QUALITY-001` verified after five documented, scoped `E402` suppressions |
 | Backend dependencies | `docker compose exec -T backend pip check` | Pass | Pass: no broken requirements found | `2026-09-18` | Command exit 0; runtime warning remains tracked as `DEP-002` |
@@ -131,10 +131,10 @@ Copy this section once per finding or link the register row to the corresponding
 | Playwright | `cd frontend && npm run test:e2e` | Pass | Two consecutive headless runs pass 3/3; the second reset removes 3 prior fixture users before recreating them | `2026-09-18` | Deterministic retry-indexed accounts; current Vite 4173 and Docker backend/PostgreSQL/Redis |
 | Playwright headed command | `cd frontend && npm run test:e2e:headed -- --list` | List configured tests | Pass: reset removes the 3 remaining fixture users and Playwright lists 3 Chromium tests | `2026-09-18` | Validates the documented headed script without opening a GUI during automated verification |
 | PostgreSQL/Redis smoke | `pg_isready`; `redis-cli ping`; README seed command | Pass | Pass: PostgreSQL accepts connections, Redis returns `PONG`, seed created 100 users and 1,000 todos | `2026-09-18` | Counts verified directly in PostgreSQL |
-| Service HTTP smoke | `curl http://localhost:8000/health`; `curl -I http://localhost:3000` | Pass | Pass: backend reports healthy; frontend returns HTTP 200 | `2026-09-18` | Performed after manual backend restart |
-| Docker cold start | `docker compose up --build -d` from stopped stack | All services start reliably | Fail: backend exited on initial PostgreSQL connection; all services healthy only after `docker compose start backend` | `2026-09-18` | `INFRA-001` |
+| Service HTTP smoke | `curl http://localhost:8000/health`; `curl -I http://localhost:3000` | Pass | Pass: backend reports healthy; frontend returns HTTP 200 | `2026-09-18` | Both app services also report healthy through Compose healthchecks |
+| Docker cold start | `docker compose up -d --build --wait` | All services start reliably | Pass: PostgreSQL/Redis became healthy before backend; frontend started after backend became healthy | `2026-09-18` | `INFRA-001` verified without a manual restart |
 | Migration upgrade/downgrade | `alembic upgrade head`; `alembic current` against PostgreSQL | Pass | Upgrade/current pass at `a0790c76a129 (head)`; downgrade intentionally not run against seeded baseline | `2026-09-18` | Migration was applied during backend startup |
-| Container hardening | `docker compose exec -T {backend,frontend} id`; port inspection | Non-root; data services not host-published | Fail: both app containers run as root; PostgreSQL and Redis bind to all host interfaces | `2026-09-18` | `INFRA-003`, `INFRA-004` |
+| Container hardening | `docker compose exec -T {backend,frontend} id`; `docker compose ps`; Redis auth probes | Non-root; authenticated data services not host-published | Pass: app UIDs are 999/1000; DB/cache expose no host bindings; unauthenticated Redis returns `NOAUTH` and authenticated ping succeeds | `2026-09-18` | `INFRA-002`–`INFRA-005` verified |
 | Performance benchmark | See `docs/PERFORMANCE_REPORT.md` | Improvement documented | Not run | `2026-09-18` | Benchmark environment pending |
 
 ## Residual risks and accepted limitations
