@@ -31,6 +31,9 @@ class RedisClient:
     async def delete(self, key: str):
         await self._redis.delete(key)
 
+    async def incr(self, key: str) -> int:
+        return await self._redis.incr(key)
+
     async def exists(self, key: str) -> bool:
         return await self._redis.exists(key)
 

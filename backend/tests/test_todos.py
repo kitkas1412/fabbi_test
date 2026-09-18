@@ -237,6 +237,72 @@ async def test_todo_cache_is_isolated_by_pagination_query(
 
 
 @pytest.mark.asyncio
+async def test_todo_mutations_invalidate_cached_lists(
+    client: AsyncClient,
+    shared_redis: MagicMock,
+):
+    """CACHE-002: create, update, and delete must not serve stale lists."""
+    token = await get_auth_token(client, "cache-invalidation@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    first = await client.post(
+        "/api/v1/todos",
+        json={"title": "First todo"},
+        headers=headers,
+    )
+    await client.post(
+        "/api/v1/todos",
+        json={"title": "Second todo"},
+        headers=headers,
+    )
+    first_id = first.json()["id"]
+
+    await client.get("/api/v1/todos", headers=headers)
+    await client.get(
+        "/api/v1/todos",
+        params={"page": 2, "size": 1},
+        headers=headers,
+    )
+
+    await client.post(
+        "/api/v1/todos",
+        json={"title": "Third todo"},
+        headers=headers,
+    )
+    after_create = await client.get("/api/v1/todos", headers=headers)
+    second_page_after_create = await client.get(
+        "/api/v1/todos",
+        params={"page": 2, "size": 1},
+        headers=headers,
+    )
+
+    assert after_create.json()["total"] == 3
+    assert second_page_after_create.json()["total"] == 3
+
+    await client.put(
+        f"/api/v1/todos/{first_id}",
+        json={"title": "Updated first todo"},
+        headers=headers,
+    )
+    after_update = await client.get("/api/v1/todos", headers=headers)
+
+    assert {item["title"] for item in after_update.json()["items"]} == {
+        "Updated first todo",
+        "Second todo",
+        "Third todo",
+    }
+
+    await client.delete(f"/api/v1/todos/{first_id}", headers=headers)
+    after_delete = await client.get("/api/v1/todos", headers=headers)
+
+    assert after_delete.json()["total"] == 2
+    assert {item["title"] for item in after_delete.json()["items"]} == {
+        "Second todo",
+        "Third todo",
+    }
+
+
+@pytest.mark.asyncio
 async def test_partial_update_can_set_completed_to_false(client: AsyncClient):
     """TODO-002: explicit false must be persisted instead of treated as omitted."""
     token = await get_auth_token(client, "completed-false@example.com")

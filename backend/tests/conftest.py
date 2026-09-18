@@ -56,6 +56,7 @@ def override_get_redis():
     mock_redis.get = AsyncMock(return_value=None)
     mock_redis.set = AsyncMock()
     mock_redis.delete = AsyncMock()
+    mock_redis.incr = AsyncMock(return_value=1)
     return mock_redis
 
 
@@ -98,9 +99,15 @@ def shared_redis():
                 del cache[key]
         return deleted
 
+    async def incr(key: str) -> int:
+        value = int(cache.get(key, "0")) + 1
+        cache[key] = str(value)
+        return value
+
     mock_redis.get = AsyncMock(side_effect=get)
     mock_redis.set = AsyncMock(side_effect=set_value)
     mock_redis.delete = AsyncMock(side_effect=delete)
+    mock_redis.incr = AsyncMock(side_effect=incr)
 
     previous_override = app.dependency_overrides.get(get_redis)
     app.dependency_overrides[get_redis] = lambda: mock_redis
