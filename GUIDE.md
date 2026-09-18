@@ -149,11 +149,21 @@ pytest tests/ -v
 ```
 
 ### Frontend E2E Tests (Playwright)
-Once set up, run your Playwright suite against the running frontend:
+
+Install Chromium once, then run the configured smoke suite headless or headed:
+
 ```bash
-# In your E2E / frontend directory:
-npx playwright test
+cd frontend
+npm ci
+npm run test:e2e:install
+npm run test:e2e
+npm run test:e2e:headed
 ```
+
+Playwright starts Vite at `http://127.0.0.1:3000` automatically. Set
+`PLAYWRIGHT_BASE_URL=http://localhost:3000` to target an already-running
+frontend. The complete authentication/Todo and cross-user Tier 2B journeys
+still require the backend and deterministic disposable test accounts.
 
 ### Database Performance Benchmarking
 To test database indexing and query execution times with 1 million records:
@@ -164,4 +174,3 @@ Connect to PostgreSQL container to run `EXPLAIN ANALYZE`:
 ```bash
 docker compose exec postgres psql -U fabbi -d postgres
 ```
-

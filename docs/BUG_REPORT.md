@@ -7,7 +7,7 @@
 | Assessment branch | `assessment/nguyen-dinh-duc` |
 | Author | Nguyen Dinh Duc |
 | Review date | `2026-09-18` |
-| Application version/commit | `23b039ee80f8d555c6d378e63727c03c07682ac8` plus pending E402 working-tree fix |
+| Application version/commit | `24bba4d3df1c79ce09249045127d80c92a1c7ad0` plus pending Playwright setup |
 | Overall status | Core auth, Todo isolation/update/cache, and frontend session remediations implemented; remaining findings are tracked below |
 
 ## Purpose
@@ -103,7 +103,7 @@ Copy this section once per finding or link the register row to the corresponding
 | Tier 1: report impactful findings | This document and final PR description | `<PR link>` | In Progress |
 | Tier 1: at least five fixes, including two backend and one frontend | Finding register and implementation commits | AUTH-001/002, TODO-001/002/003, CACHE-001/002, FE-001/002/003 | Minimum implementation met; final PR evidence pending |
 | Tier 2A: at least three backend critical scenarios | `backend/tests/` | 19/19 pass, including ten security/correctness/cache regression cases | Complete |
-| Tier 2B: two required Playwright scenarios | `<e2e path>` | `<Playwright report>` | Not Started |
+| Tier 2B: two required Playwright scenarios | `frontend/e2e/` and `frontend/playwright.config.ts` | Chromium smoke test 1/1 passes; required user journey and cross-user isolation scenarios pending | In Progress |
 | Tier 2C: manual test plan | `docs/TEST_PLAN.md` | Matrix and automated evidence updated; manual execution pending | In Progress |
 | Tier 3A: Todo Sharing specification only | `docs/TODO_SHARING_SPEC.md` | Draft structure created; specification decisions pending | In Progress |
 | Tier 3B: at least three infrastructure improvements | Compose/Docker changes | `<validation>` | Not Started |
@@ -126,7 +126,7 @@ Copy this section once per finding or link the register row to the corresponding
 | Frontend unit regression | `cd frontend && npm test` | Pass | Pass: 2/2 query-isolation and session-cleanup tests | `2026-09-18` | FE-001/FE-002 regression coverage; Node 20-compatible runner |
 | Frontend build | `cd frontend && npm run build` | Pass | Pass with warning: main JS 521.44 kB (163.02 kB gzip) | `2026-09-18` | `FE-007` |
 | Frontend dependency audit | `cd frontend && npm audit --omit=dev` | No known production vulnerabilities | Fail: 6 vulnerabilities (5 High, 1 Moderate) | `2026-09-18` | `DEP-001`; full audit reports 9 total (7 High, 2 Moderate) |
-| Playwright | `npx playwright test` | Pass | Not configured in the repository | `2026-09-18` | Tier 2B pending |
+| Playwright | `cd frontend && npm run test:e2e` | Pass | Chromium smoke test passes: 1/1 in 3.2s | `2026-09-18` | Playwright 1.63.0 and Chromium are configured; two required Tier 2B journeys remain pending |
 | PostgreSQL/Redis smoke | `pg_isready`; `redis-cli ping`; README seed command | Pass | Pass: PostgreSQL accepts connections, Redis returns `PONG`, seed created 100 users and 1,000 todos | `2026-09-18` | Counts verified directly in PostgreSQL |
 | Service HTTP smoke | `curl http://localhost:8000/health`; `curl -I http://localhost:3000` | Pass | Pass: backend reports healthy; frontend returns HTTP 200 | `2026-09-18` | Performed after manual backend restart |
 | Docker cold start | `docker compose up --build -d` from stopped stack | All services start reliably | Fail: backend exited on initial PostgreSQL connection; all services healthy only after `docker compose start backend` | `2026-09-18` | `INFRA-001` |
