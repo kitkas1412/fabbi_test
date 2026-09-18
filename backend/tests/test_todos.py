@@ -21,7 +21,7 @@ async def get_auth_token(client: AsyncClient, email: str = "todo@example.com") -
     return response.json()["access_token"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_create_todo(client: AsyncClient):
     """Test creating a new todo."""
     token = await get_auth_token(client, "create@example.com")
@@ -38,7 +38,7 @@ async def test_create_todo(client: AsyncClient):
     assert data["completed"] is False
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_todos(client: AsyncClient):
     """Test getting todo list."""
     token = await get_auth_token(client, "list@example.com")
@@ -62,7 +62,7 @@ async def test_get_todos(client: AsyncClient):
     assert len(data["items"]) >= 1
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_todo_list_rejects_page_size_above_maximum(client: AsyncClient):
     """API-001: list requests cannot bypass the bounded page-size contract."""
     token = await get_auth_token(client, "page-size-limit@example.com")
@@ -76,7 +76,7 @@ async def test_todo_list_rejects_page_size_above_maximum(client: AsyncClient):
     assert response.status_code == 422
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_todos_orders_newest_first(client: AsyncClient):
     """Pagination must have a stable newest-first order."""
     token = await get_auth_token(client, "ordered-list@example.com")
@@ -101,7 +101,7 @@ async def test_get_todos_orders_newest_first(client: AsyncClient):
     ]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_todo_list_eager_loads_users_for_response(
     client: AsyncClient,
     db_session,
@@ -127,7 +127,7 @@ async def test_todo_list_eager_loads_users_for_response(
     assert all("user" not in sa_inspect(todo).unloaded for todo in todos)
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_update_todo(client: AsyncClient):
     """Test updating a todo."""
     token = await get_auth_token(client, "update@example.com")
@@ -151,7 +151,7 @@ async def test_update_todo(client: AsyncClient):
     assert data["title"] == "Updated Title"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_delete_todo(client: AsyncClient):
     """Test deleting a todo."""
     token = await get_auth_token(client, "delete@example.com")
@@ -172,7 +172,7 @@ async def test_delete_todo(client: AsyncClient):
     assert response.status_code == 204
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_single_todo(client: AsyncClient):
     """Test getting a single todo by ID."""
     token = await get_auth_token(client, "single@example.com")
@@ -195,7 +195,7 @@ async def test_get_single_todo(client: AsyncClient):
     assert data["title"] == "Single Todo"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.parametrize("method", ["get", "put", "delete"])
 async def test_user_cannot_access_another_users_todo(
     client: AsyncClient,
@@ -238,7 +238,7 @@ async def test_user_cannot_access_another_users_todo(
     assert owner_response.json()["completed"] is False
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_todo_cache_is_isolated_by_user(
     client: AsyncClient,
     shared_redis: MagicMock,
@@ -273,7 +273,7 @@ async def test_todo_cache_is_isolated_by_user(
     ]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_todo_cache_is_isolated_by_pagination_query(
     client: AsyncClient,
     shared_redis: MagicMock,
@@ -307,7 +307,7 @@ async def test_todo_cache_is_isolated_by_pagination_query(
     assert first_page.json()["items"][0]["id"] != second_page.json()["items"][0]["id"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_todo_mutations_invalidate_cached_lists(
     client: AsyncClient,
     shared_redis: MagicMock,
@@ -373,7 +373,7 @@ async def test_todo_mutations_invalidate_cached_lists(
     }
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_failed_todo_commit_does_not_invalidate_cache():
     """CACHE-003: Redis version changes only after a successful DB commit."""
     db = MagicMock()
@@ -390,7 +390,7 @@ async def test_failed_todo_commit_does_not_invalidate_cache():
     redis.incr.assert_not_awaited()
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_todo_cache_invalidation_follows_successful_commit():
     """CACHE-003: cache version changes only after the transaction commits."""
     events: list[str] = []
@@ -408,7 +408,7 @@ async def test_todo_cache_invalidation_follows_successful_commit():
     assert events == ["commit", "invalidate"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_partial_update_can_set_completed_to_false(client: AsyncClient):
     """TODO-002: explicit false must be persisted instead of treated as omitted."""
     token = await get_auth_token(client, "completed-false@example.com")
@@ -442,7 +442,7 @@ async def test_partial_update_can_set_completed_to_false(client: AsyncClient):
     assert persisted.json()["completed"] is False
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_partial_update_preserves_omitted_description(client: AsyncClient):
     """TODO-003: omitted fields must retain their stored values."""
     token = await get_auth_token(client, "preserve-description@example.com")

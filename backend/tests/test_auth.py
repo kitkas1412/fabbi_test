@@ -10,7 +10,7 @@ from app.core.security import create_access_token
 from app.models.user import User
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_register_success(client: AsyncClient):
     """Test successful user registration."""
     response = await client.post(
@@ -24,7 +24,7 @@ async def test_register_success(client: AsyncClient):
     assert data["token_type"] == "bearer"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_user_email_is_unique_in_database(db_session):
     """DB-001: the database, not only the API pre-check, rejects duplicates."""
     db_session.add(
@@ -41,7 +41,7 @@ async def test_user_email_is_unique_in_database(db_session):
     await db_session.rollback()
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_login_success(client: AsyncClient):
     """Test successful login after registration."""
     # Register first
@@ -61,7 +61,7 @@ async def test_login_success(client: AsyncClient):
     assert "refresh_token" in data
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_login_failure_does_not_reveal_whether_email_exists(client: AsyncClient):
     """AUTH-004: unknown-email and wrong-password failures are identical."""
     await client.post(
@@ -86,7 +86,7 @@ async def test_login_failure_does_not_reveal_whether_email_exists(client: AsyncC
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_current_user(client: AsyncClient):
     """Test getting current user info."""
     # Register and get token
@@ -106,7 +106,7 @@ async def test_get_current_user(client: AsyncClient):
     assert data["email"] == "me@example.com"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_logout(client: AsyncClient):
     """Test logout endpoint."""
     # Register and get token
@@ -125,7 +125,7 @@ async def test_logout(client: AsyncClient):
     assert response.json()["message"] == "Successfully logged out"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_refresh_token_rotation_rejects_replay(
     client: AsyncClient,
     shared_redis,
@@ -153,7 +153,7 @@ async def test_refresh_token_rotation_rejects_replay(
     assert replay.status_code == 401
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_logout_revokes_access_and_refresh_session(
     client: AsyncClient,
     shared_redis,
@@ -178,7 +178,7 @@ async def test_logout_revokes_access_and_refresh_session(
     assert refresh_after_logout.status_code == 401
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_expired_access_token_is_rejected(client: AsyncClient):
     """AUTH-001: an expired access token cannot authenticate a request."""
     registration = await client.post(
@@ -204,7 +204,7 @@ async def test_expired_access_token_is_rejected(client: AsyncClient):
     assert response.status_code == 401
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_refresh_token_cannot_authenticate_access_endpoint(client: AsyncClient):
     """AUTH-002: access-only dependencies must reject refresh tokens."""
     registration = await client.post(

@@ -64,6 +64,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 - [x] Test data resets deterministically through an exact email allowlist before headless/headed/UI runs.
 - [x] Backend automated tests were executed after remediation: 31/31 passed.
 - [x] PostgreSQL/Redis integration tests were executed after remediation: 2/2 passed.
+- [x] The fast suite has no pytest-asyncio custom-event-loop deprecation warning.
 - [x] Backend Black and unfiltered Flake8 gates pass on the remediated tree.
 - [x] Frontend query-isolation/session-cleanup/auth-401/page-size/row-key unit tests were executed: 5/5 passed.
 - [x] Frontend lint and production build pass; the bundle-size warning remains tracked as `FE-007`.
@@ -140,6 +141,7 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | RUN-017 | `2026-09-18` | `de88674` + database-performance worktree | PostgreSQL 16.15 / Docker Desktop; 10 CPUs / ~7.75 GiB; isolated `fabbi_performance` database | Nguyen Dinh Duc with Codex assistance | Tier 3C baseline/index/retest and backend regression | **Pass with warnings**: 10k users/1M Todos; Q1 median 22.245→0.056 ms and Q2 20.471→0.064 ms; migration concurrent upgrade/downgrade/re-upgrade passes; backend 23/23, Black, Flake8 pass; existing deprecation warnings remain | Raw plans, all timing samples, index size, migration safety, and limitations in `docs/PERFORMANCE_REPORT.md`; `DB-003` remains open |
 | RUN-018 | `2026-09-18` | AUTH-003 working tree | Fresh non-root Docker Python 3.12.14 image; Redis 7 Compose service | Nguyen Dinh Duc with Codex assistance | Refresh rotation, logout revocation, full backend quality gates, and real-Redis Lua smoke | **Pass with warnings**: 25/25 pytest, Black, and Flake8 pass; Redis proves one-time rotation and rejects refresh after logout; 3 known deprecation warnings remain | `test_refresh_token_rotation_rejects_replay`; `test_logout_revokes_access_and_refresh_session`; AUTH-003 verified |
 | RUN-019 | `2026-09-18` | TEST-002 working tree | Fresh non-root Docker Python 3.12.14 image; PostgreSQL 16 and authenticated Redis 7 Compose services | Nguyen Dinh Duc with Codex assistance | Dedicated production-fidelity integration suite | **Pass with warnings**: 2/2 integration tests, Black across 33 files, Flake8 across app/fast/integration tests, and fast suite 31/31 pass; Pydantic, passlib, pytest-asyncio, and Redis-close deprecation warnings remain | Cache namespaces are distinct per user, mutation versioning refreshes PostgreSQL state, and two simultaneous refreshes yield exactly one 200 and one 401 |
+| RUN-020 | `2026-09-18` | TEST-003 working tree | Fresh non-root Docker Python 3.12.14 image | Nguyen Dinh Duc with Codex assistance | pytest-asyncio event-loop maintenance | **Pass with warnings**: fast suite 31/31, Black across 33 files, and Flake8 across app/fast/integration tests pass; the custom-event-loop warning is absent, while Pydantic and passlib dependency warnings remain | Async tests explicitly use the supported session loop scope; pytest config turns a reintroduced custom `event_loop` fixture warning into an error |
 
 ## 8. Defect log
 
