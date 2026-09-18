@@ -1,9 +1,13 @@
 """Todo tests."""
 
-from unittest.mock import MagicMock
+import uuid
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.exc import SQLAlchemyError
+
+from app.api.v1.todos import commit_todo_mutation
 
 
 async def get_auth_token(client: AsyncClient, email: str = "todo@example.com") -> str:
@@ -325,6 +329,41 @@ async def test_todo_mutations_invalidate_cached_lists(
         "Second todo",
         "Third todo",
     }
+
+
+@pytest.mark.asyncio
+async def test_failed_todo_commit_does_not_invalidate_cache():
+    """CACHE-003: Redis version changes only after a successful DB commit."""
+    db = MagicMock()
+    db.commit = AsyncMock(side_effect=SQLAlchemyError("commit failed"))
+    db.rollback = AsyncMock()
+    redis = MagicMock()
+    redis.incr = AsyncMock()
+    user_id = "00000000-0000-0000-0000-000000000001"
+
+    with pytest.raises(SQLAlchemyError, match="commit failed"):
+        await commit_todo_mutation(db, redis, user_id)
+
+    db.rollback.assert_awaited_once()
+    redis.incr.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_todo_cache_invalidation_follows_successful_commit():
+    """CACHE-003: cache version changes only after the transaction commits."""
+    events: list[str] = []
+    db = MagicMock()
+    db.commit = AsyncMock(side_effect=lambda: events.append("commit"))
+    redis = MagicMock()
+    redis.incr = AsyncMock(side_effect=lambda _: events.append("invalidate"))
+
+    await commit_todo_mutation(
+        db,
+        redis,
+        uuid.UUID("00000000-0000-0000-0000-000000000001"),
+    )
+
+    assert events == ["commit", "invalidate"]
 
 
 @pytest.mark.asyncio

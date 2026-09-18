@@ -40,6 +40,20 @@ async def invalidate_todo_cache(redis: RedisClient, user_id: uuid.UUID) -> None:
     await redis.incr(todo_cache_version_key(user_id))
 
 
+async def commit_todo_mutation(
+    db: AsyncSession,
+    redis: RedisClient,
+    user_id: uuid.UUID,
+) -> None:
+    """Commit a Todo mutation before exposing its cache invalidation."""
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
+    await invalidate_todo_cache(redis, user_id)
+
+
 @router.get("", response_model=TodoListResponse)
 async def list_todos(
     page: int = Query(1, ge=1),
@@ -106,7 +120,7 @@ async def create_new_todo(
 ):
     """Create a new todo item."""
     todo = await create_todo(db, todo_data, current_user.id)
-    await invalidate_todo_cache(redis, current_user.id)
+    await commit_todo_mutation(db, redis, current_user.id)
     return todo
 
 
@@ -145,7 +159,7 @@ async def update_existing_todo(
 
     update_data = todo_data.model_dump(exclude_unset=True)
     updated_todo = await update_todo(db, todo, update_data)
-    await invalidate_todo_cache(redis, current_user.id)
+    await commit_todo_mutation(db, redis, current_user.id)
 
     return updated_todo
 
@@ -166,6 +180,6 @@ async def delete_existing_todo(
         )
 
     await delete_todo(db, todo)
-    await invalidate_todo_cache(redis, current_user.id)
+    await commit_todo_mutation(db, redis, current_user.id)
 
     return None
