@@ -22,20 +22,43 @@ npm run build
 
 ## Playwright
 
-Install the pinned Node dependencies and Chromium browser binary:
+Start the current backend stack from the repository root:
+
+```bash
+docker compose up -d --build postgres redis backend
+```
+
+Then install the pinned Node dependencies and Chromium browser binary:
 
 ```bash
 npm ci
 npm run test:e2e:install
 ```
 
-Run the Playwright suite headless, headed, or in UI mode:
+Run the Playwright suite headless or headed. Both commands reset the allowlisted
+E2E users before launching Playwright:
 
 ```bash
-npm run test:e2e
-npm run test:e2e:headed
+npm run test:e2e          # headless
+npm run test:e2e:headed   # headed browser
 npm run test:e2e:ui
 ```
+
+The reset can also be run explicitly with `npm run test:e2e:prepare`. It deletes
+Todos first and then users for only these deterministic fixture identities:
+
+| Role | Email pattern | Password | Todo title |
+|---|---|---|---|
+| Journey 1 | `e2e-journey1-r{0..2}@example.com` | `E2eTodo@123` | `E2E Journey 1 Todo r{retry}` |
+| Journey 2 user A | `e2e-journey2-a-r{0..2}@example.com` | `E2eTodo@123` | `E2E Journey 2 Todo r{retry}` |
+| Journey 2 user B | `e2e-journey2-b-r{0..2}@example.com` | `E2eTodo@123` | None |
+
+Retry indexes 0–2 match the configured initial attempt plus two CI retries. The
+backend reset refuses to run unless `E2E_ALLOW_RESET=1`; the npm prepare script
+sets this confirmation flag. Do not run multiple suites concurrently against
+the same backend because each suite resets the same fixed fixture namespace. UI
+mode resets once at startup; restart `npm run test:e2e:ui` before rerunning a
+registration journey after it has created its fixture account.
 
 Playwright starts a dedicated Vite server on `http://127.0.0.1:4173` when no server is
 already running. Set `PLAYWRIGHT_BASE_URL` to test an existing frontend; when
@@ -46,8 +69,8 @@ PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:e2e
 ```
 
 The smoke test validates the browser setup without backend data. Journey 1 uses
-a unique disposable account to cover registration, logout/login, Todo creation,
-editing, completion, deletion, and final logout against the backend at
+the deterministic Journey 1 account to cover registration, logout/login, Todo
+creation, editing, completion, deletion, and final logout against the backend at
 `http://localhost:8000`. Journey 2 uses two isolated browser contexts and
 verifies that user B cannot see, read, update, or delete user A's Todo.
 

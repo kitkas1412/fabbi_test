@@ -150,15 +150,23 @@ pytest tests/ -v
 
 ### Frontend E2E Tests (Playwright)
 
-Install Chromium once, then run the configured suite headless or headed:
+Start the current backend services, install Chromium once, then run the suite
+headless or headed:
 
 ```bash
+docker compose up -d --build postgres redis backend
 cd frontend
 npm ci
 npm run test:e2e:install
-npm run test:e2e
-npm run test:e2e:headed
+npm run test:e2e          # headless
+npm run test:e2e:headed   # headed browser
 ```
+
+Both run commands first execute `npm run test:e2e:prepare`. The prepare step
+deletes only the allowlisted `e2e-journey1-r{0..2}@example.com` and
+`e2e-journey2-{a,b}-r{0..2}@example.com` users and their Todos, then the tests
+recreate deterministic data using password `E2eTodo@123`. Do not run concurrent
+suites against the same backend because they share this fixture namespace.
 
 Playwright starts a dedicated Vite server at `http://127.0.0.1:4173`
 automatically. Set

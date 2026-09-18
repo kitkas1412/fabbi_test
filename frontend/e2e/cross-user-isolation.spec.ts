@@ -1,9 +1,10 @@
-import process from "node:process";
-
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 
-const apiBaseURL = "http://127.0.0.1:8000";
-const password = "E2eIsolation@123";
+import {
+  E2E_API_BASE_URL,
+  e2eAccount,
+  e2eTodoTitle,
+} from "./fixtures/test-data";
 
 interface TokenResponse {
   access_token: string;
@@ -16,25 +17,19 @@ interface TodoResponse {
   completed: boolean;
 }
 
-function testRunId(): string {
-  return (process.env.E2E_RUN_ID ?? Date.now().toString(36))
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, "-")
-    .slice(0, 24);
-}
-
 async function registerUser(
   request: APIRequestContext,
   email: string,
+  password: string,
 ): Promise<TokenResponse> {
-  const response = await request.post(`${apiBaseURL}/api/v1/auth/register`, {
+  const response = await request.post(`${E2E_API_BASE_URL}/api/v1/auth/register`, {
     data: { email, password },
   });
   expect(response.status()).toBe(201);
   return (await response.json()) as TokenResponse;
 }
 
-async function login(page: Page, email: string) {
+async function login(page: Page, email: string, password: string) {
   await page.goto("/login");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
@@ -67,22 +62,20 @@ test("prevents user B from viewing or mutating user A's Todo", async ({
     throw new Error("Playwright baseURL must be configured for Journey 2");
   }
 
-  const healthResponse = await request.get(`${apiBaseURL}/health`);
+  const healthResponse = await request.get(`${E2E_API_BASE_URL}/health`);
   expect(
     healthResponse.ok(),
-    `Start the backend on ${apiBaseURL} before running Journey 2`,
+    `Start the backend on ${E2E_API_BASE_URL} before running Journey 2`,
   ).toBeTruthy();
 
-  const runId = testRunId();
-  const accountSuffix = `${runId}-${testInfo.workerIndex}-${testInfo.retry}`;
-  const userAEmail = `journey2-a-${accountSuffix}@example.com`;
-  const userBEmail = `journey2-b-${accountSuffix}@example.com`;
-  const todoTitle = `User A private Todo ${runId}`;
+  const userA = e2eAccount("journey2-a", testInfo.retry);
+  const userB = e2eAccount("journey2-b", testInfo.retry);
+  const todoTitle = e2eTodoTitle(2, testInfo.retry);
   const todoDescription = "This Todo must remain private to user A";
 
   const [userATokens] = await Promise.all([
-    registerUser(request, userAEmail),
-    registerUser(request, userBEmail),
+    registerUser(request, userA.email, userA.password),
+    registerUser(request, userB.email, userB.password),
   ]);
 
   const [userAContext, userBContext] = await Promise.all([
@@ -95,7 +88,7 @@ test("prevents user B from viewing or mutating user A's Todo", async ({
   let todoId: string | undefined;
 
   try {
-    await login(userAPage, userAEmail);
+    await login(userAPage, userA.email, userA.password);
 
     await userAPage.getByRole("button", { name: "Add Todo" }).click();
     const createDialog = userAPage.getByRole("dialog", {
@@ -122,7 +115,11 @@ test("prevents user B from viewing or mutating user A's Todo", async ({
       .filter({ hasText: todoTitle });
     await expect(userATodo).toContainText(todoDescription);
 
-    const userBListResponse = await login(userBPage, userBEmail);
+    const userBListResponse = await login(
+      userBPage,
+      userB.email,
+      userB.password,
+    );
     expect(userBListResponse.status()).toBe(200);
     const userBList = (await userBListResponse.json()) as {
       items: TodoResponse[];
@@ -144,13 +141,13 @@ test("prevents user B from viewing or mutating user A's Todo", async ({
     };
 
     const forbiddenRead = await request.get(
-      `${apiBaseURL}/api/v1/todos/${todoId}`,
+      `${E2E_API_BASE_URL}/api/v1/todos/${todoId}`,
       { headers: userBHeaders },
     );
     expect(forbiddenRead.status()).toBe(404);
 
     const forbiddenUpdate = await request.put(
-      `${apiBaseURL}/api/v1/todos/${todoId}`,
+      `${E2E_API_BASE_URL}/api/v1/todos/${todoId}`,
       {
         headers: userBHeaders,
         data: { title: "Compromised by user B", completed: true },
@@ -159,13 +156,13 @@ test("prevents user B from viewing or mutating user A's Todo", async ({
     expect(forbiddenUpdate.status()).toBe(404);
 
     const forbiddenDelete = await request.delete(
-      `${apiBaseURL}/api/v1/todos/${todoId}`,
+      `${E2E_API_BASE_URL}/api/v1/todos/${todoId}`,
       { headers: userBHeaders },
     );
     expect(forbiddenDelete.status()).toBe(404);
 
     const ownerRead = await request.get(
-      `${apiBaseURL}/api/v1/todos/${todoId}`,
+      `${E2E_API_BASE_URL}/api/v1/todos/${todoId}`,
       {
         headers: { Authorization: `Bearer ${userATokens.access_token}` },
       },
@@ -188,7 +185,7 @@ test("prevents user B from viewing or mutating user A's Todo", async ({
     ).not.toBeChecked();
   } finally {
     if (todoId) {
-      await request.delete(`${apiBaseURL}/api/v1/todos/${todoId}`, {
+      await request.delete(`${E2E_API_BASE_URL}/api/v1/todos/${todoId}`, {
         headers: { Authorization: `Bearer ${userATokens.access_token}` },
       });
     }

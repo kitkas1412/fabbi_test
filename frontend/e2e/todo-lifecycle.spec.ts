@@ -1,37 +1,31 @@
-import process from "node:process";
-
 import { expect, test } from "@playwright/test";
 
-const password = "E2eTodo@123";
-
-function testRunId(): string {
-  return (process.env.E2E_RUN_ID ?? Date.now().toString(36))
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, "-")
-    .slice(0, 24);
-}
+import {
+  E2E_API_BASE_URL,
+  e2eAccount,
+  e2eTodoTitle,
+} from "./fixtures/test-data";
 
 test("registers, logs in, and completes the Todo lifecycle", async ({
   page,
   request,
 }, testInfo) => {
-  const healthResponse = await request.get("http://127.0.0.1:8000/health");
+  const healthResponse = await request.get(`${E2E_API_BASE_URL}/health`);
   expect(
     healthResponse.ok(),
-    "Start the backend on http://127.0.0.1:8000 before running Journey 1",
+    `Start the backend on ${E2E_API_BASE_URL} before running Journey 1`,
   ).toBeTruthy();
 
-  const runId = testRunId();
-  const email = `journey1-${runId}-${testInfo.workerIndex}-${testInfo.retry}@example.com`;
-  const initialTitle = `Journey 1 Todo ${runId}`;
+  const account = e2eAccount("journey1", testInfo.retry);
+  const initialTitle = e2eTodoTitle(1, testInfo.retry);
   const initialDescription = "Created by the Playwright lifecycle journey";
   const updatedTitle = `${initialTitle} updated`;
   const updatedDescription = "Edited before marking the Todo complete";
 
   await page.goto("/register");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByLabel("Confirm Password").fill(password);
+  await page.getByLabel("Email").fill(account.email);
+  await page.getByLabel("Password", { exact: true }).fill(account.password);
+  await page.getByLabel("Confirm Password").fill(account.password);
 
   const registerResponsePromise = page.waitForResponse(
     (response) =>
@@ -43,13 +37,13 @@ test("registers, logs in, and completes the Todo lifecycle", async ({
 
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { name: "Todo App" })).toBeVisible();
-  await expect(page.getByText(email)).toBeVisible();
+  await expect(page.getByText(account.email)).toBeVisible();
 
   await page.getByRole("button", { name: "Logout" }).click();
   await expect(page).toHaveURL(/\/login$/);
 
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.getByLabel("Email").fill(account.email);
+  await page.getByLabel("Password").fill(account.password);
 
   const loginResponsePromise = page.waitForResponse(
     (response) =>
@@ -60,7 +54,7 @@ test("registers, logs in, and completes the Todo lifecycle", async ({
   expect((await loginResponsePromise).status()).toBe(200);
 
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByText(email)).toBeVisible();
+  await expect(page.getByText(account.email)).toBeVisible();
 
   await page.getByRole("button", { name: "Add Todo" }).click();
   const createDialog = page.getByRole("dialog", { name: "Create Todo" });
@@ -137,7 +131,7 @@ test("registers, logs in, and completes the Todo lifecycle", async ({
   );
   expect(accessToken).not.toBeNull();
   const deletedTodoResponse = await request.get(
-    `http://127.0.0.1:8000/api/v1/todos/${createdTodoResponse.id}`,
+    `${E2E_API_BASE_URL}/api/v1/todos/${createdTodoResponse.id}`,
     {
       headers: { Authorization: `Bearer ${accessToken}` },
     },

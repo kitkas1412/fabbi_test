@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Scope/version | HEAD `92d83dd4b8c65affa0fb32d34c2be8e9c29e87f8` plus pending Journey 2 worktree |
+| Scope/version | HEAD `f214cc0489cdfcc348c434864bc1caa6bcaeb3cc` plus pending deterministic E2E data setup |
 | Author | Nguyen Dinh Duc |
 | Test window | `2026-09-18` – automated remediation and both required E2E journeys complete; remaining manual execution pending |
 | Environment | macOS 26.6.2; Docker 29.5.2 / Compose 5.1.4; Compose application stack |
@@ -49,8 +49,9 @@ Required test identities:
 
 | Account | Purpose | Setup method |
 |---|---|---|
-| User A | Owner of private Todo/tag data | Journey 1 generates a unique disposable registration per run |
-| User B | Cross-user authorization checks | Journey 2 generates a second disposable registration in an isolated browser context |
+| Journey 1 user | Registration/login and Todo lifecycle | `e2e-journey1-r{0..2}@example.com`; reset before each suite |
+| User A | Owner of private Todo data | `e2e-journey2-a-r{0..2}@example.com`; isolated Journey 2 context |
+| User B | Cross-user authorization checks | `e2e-journey2-b-r{0..2}@example.com`; isolated Journey 2 context |
 | Revoked/deleted user | Token lifecycle checks | Planned fixture; account not created |
 
 Do not record real passwords or tokens in this document. Use disposable local test credentials supplied through test configuration.
@@ -60,7 +61,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 - [x] Target commit is identified.
 - [x] Required services are healthy after the documented manual backend restart.
 - [x] Database migrations completed successfully at `a0790c76a129 (head)`.
-- [ ] Test data can be reset deterministically.
+- [x] Test data resets deterministically through an exact email allowlist before headless/headed/UI runs.
 - [x] Backend automated tests were executed after remediation: 19/19 passed.
 - [x] Backend Black and unfiltered Flake8 gates pass on the remediated tree.
 - [x] Frontend query-isolation/session-cleanup unit tests were executed: 2/2 passed.
@@ -130,6 +131,7 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | RUN-012 | `2026-09-18` | `24bba4d` + Playwright working tree | Node 24.17.0 / npm 11.13.0 / Playwright 1.63.0 / Chromium 153.0.8010.12 | Nguyen Dinh Duc with Codex assistance | Playwright installation/configuration and frontend regression | **Pass with warning**: Chromium smoke 1/1, unit tests 2/2, ESLint and build pass; bundle remains 521.44 kB | Browser setup verified; complete user journey and cross-user isolation scenarios remain pending |
 | RUN-013 | `2026-09-18` | `33bac3f` + Journey 1 worktree | Playwright 1.63.0 / Chromium 153.0.8010.12 / Vite 4173 / current Docker backend, PostgreSQL, and Redis | Nguyen Dinh Duc with Codex assistance | Lifecycle Journey 1 plus frontend regression | **Pass with warnings**: Playwright 2/2, unit tests 2/2, ESLint and build pass; dialogs emit accessibility warnings and bundle is 521.53 kB | Register → logout/login → create → edit → complete → delete → GET 404 → logout; Journey 2 pending |
 | RUN-014 | `2026-09-18` | `92d83dd` + Journey 2 worktree | Playwright 1.63.0 / Chromium 153.0.8010.12 / Vite 4173 / current Docker backend, PostgreSQL, and Redis | Nguyen Dinh Duc with Codex assistance | Cross-user Journey 2 and full frontend regression | **Pass with warnings**: Playwright 3/3 in 11.8s using 3 workers, unit tests 2/2, ESLint and build pass; dialog and bundle warnings remain | B list/UI excludes A's Todo; B GET/PUT/DELETE return 404; A's Todo remains unchanged; Tier 2B complete |
+| RUN-015 | `2026-09-18` | `f214cc0` + deterministic-data worktree | Docker backend/PostgreSQL/Redis; Playwright 1.63.0 / Chromium 153.0.8010.12 / Vite 4173 | Nguyen Dinh Duc with Codex assistance | Deterministic reset and headless/headed commands | **Pass with warnings**: two consecutive headless runs pass 3/3; second reset deletes 3 previous fixture users; headed `--list` resets them again and lists all 3 tests | Exact 9-email allowlist covers attempt/retries 0–2; reset requires `E2E_ALLOW_RESET=1`; dialog warnings remain |
 
 ## 8. Defect log
 
@@ -151,7 +153,7 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 - Backend dependencies are not installed in the default system environment; the latest remediation run used isolated `uv --no-project` execution on Python 3.12.12, matching the project's Python 3.12 target without creating a project `uv.lock`.
 - The stack is currently running, but the backend does not survive a clean cold start reliably without a manual restart.
 - Seed data is suitable for local smoke/benchmark preparation but is randomly generated and is not a deterministic reset fixture.
-- Both required Playwright journeys use unique disposable registrations and pass. Created Todo data is deleted, but registered E2E users remain because the application has no user-deletion endpoint.
+- Both required Playwright journeys use fixed retry-indexed fixtures. The npm headless/headed/UI commands reset the exact allowlist before execution; concurrent suites against one backend are unsupported because they share that namespace.
 - Existing backend tests use SQLite and a Redis mock, so PostgreSQL/Redis integration coverage must be added separately.
 
 ## 10. Approval

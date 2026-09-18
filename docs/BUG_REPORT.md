@@ -7,7 +7,7 @@
 | Assessment branch | `assessment/nguyen-dinh-duc` |
 | Author | Nguyen Dinh Duc |
 | Review date | `2026-09-18` |
-| Application version/commit | `92d83dd4b8c65affa0fb32d34c2be8e9c29e87f8` plus pending Journey 2 worktree |
+| Application version/commit | `f214cc0489cdfcc348c434864bc1caa6bcaeb3cc` plus pending deterministic E2E data setup |
 | Overall status | Core auth, Todo isolation/update/cache, and frontend session remediations implemented; remaining findings are tracked below |
 
 ## Purpose
@@ -128,7 +128,8 @@ Copy this section once per finding or link the register row to the corresponding
 | Frontend unit regression | `cd frontend && npm test` | Pass | Pass: 2/2 query-isolation and session-cleanup tests | `2026-09-18` | FE-001/FE-002 regression coverage; Node 20-compatible runner |
 | Frontend build | `cd frontend && npm run build` | Pass | Pass with warning: main JS 521.53 kB (163.06 kB gzip) | `2026-09-18` | `FE-007` |
 | Frontend dependency audit | `cd frontend && npm audit --omit=dev` | No known production vulnerabilities | Fail: 6 vulnerabilities (5 High, 1 Moderate) | `2026-09-18` | `DEP-001`; full audit reports 9 total (7 High, 2 Moderate) |
-| Playwright | `cd frontend && npm run test:e2e` | Pass | 3/3 pass in 11.8s: login smoke, lifecycle Journey 1, and cross-user Journey 2 | `2026-09-18` | Runs three workers against current Vite source on port 4173 and current Docker backend/PostgreSQL/Redis |
+| Playwright | `cd frontend && npm run test:e2e` | Pass | Two consecutive headless runs pass 3/3; the second reset removes 3 prior fixture users before recreating them | `2026-09-18` | Deterministic retry-indexed accounts; current Vite 4173 and Docker backend/PostgreSQL/Redis |
+| Playwright headed command | `cd frontend && npm run test:e2e:headed -- --list` | List configured tests | Pass: reset removes the 3 remaining fixture users and Playwright lists 3 Chromium tests | `2026-09-18` | Validates the documented headed script without opening a GUI during automated verification |
 | PostgreSQL/Redis smoke | `pg_isready`; `redis-cli ping`; README seed command | Pass | Pass: PostgreSQL accepts connections, Redis returns `PONG`, seed created 100 users and 1,000 todos | `2026-09-18` | Counts verified directly in PostgreSQL |
 | Service HTTP smoke | `curl http://localhost:8000/health`; `curl -I http://localhost:3000` | Pass | Pass: backend reports healthy; frontend returns HTTP 200 | `2026-09-18` | Performed after manual backend restart |
 | Docker cold start | `docker compose up --build -d` from stopped stack | All services start reliably | Fail: backend exited on initial PostgreSQL connection; all services healthy only after `docker compose start backend` | `2026-09-18` | `INFRA-001` |
