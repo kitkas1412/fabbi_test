@@ -9,6 +9,7 @@ def test_settings_loads_required_environment_values(monkeypatch):
         "DATABASE_URL": "sqlite+aiosqlite:///./configured-test.db",
         "REDIS_URL": "redis://localhost:6379/5",
         "JWT_SECRET": "configured-test-jwt-secret",
+        "CORS_ORIGINS": "http://localhost:3000",
     }
     for setting, value in configured_values.items():
         monkeypatch.setenv(setting, value)

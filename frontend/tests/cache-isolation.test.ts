@@ -7,6 +7,10 @@ import {
   todoKeys,
 } from "../src/features/todos/api/queryKeys.js";
 import { todoFiltersSchema } from "../src/features/todos/schemas/todo.js";
+import {
+  handleBulkStatusFailure,
+  handleBulkStatusSuccess,
+} from "../src/features/todos/api/mutationHandlers.js";
 import { tagSchema } from "../src/features/tags/schemas/tag.js";
 import { shouldClearSessionForUnauthorized } from "../src/lib/authErrorHandling.js";
 import { getApiErrorMessage } from "../src/lib/apiError.js";
@@ -124,7 +128,8 @@ test("password validation matches the backend character and UTF-8 byte limits", 
 });
 
 test("tag and date-range validation mirror backend constraints", () => {
-  assert.equal(tagSchema.safeParse({ name: "  Planning  ", color: "#22c55e" }).success, true);
+  const normalizedTag = tagSchema.parse({ name: "  Planning  ", color: "#22c55e" });
+  assert.deepEqual(normalizedTag, { name: "Planning", color: "#22c55e" });
   assert.equal(tagSchema.safeParse({ name: "   " }).success, false);
   assert.equal(tagSchema.safeParse({ name: "x".repeat(51) }).success, false);
   assert.equal(tagSchema.safeParse({ name: "Tag", color: "x".repeat(21) }).success, false);
@@ -149,6 +154,41 @@ test("tag and date-range validation mirror backend constraints", () => {
     }).success,
     false,
   );
+});
+
+test("bulk Todo success invalidates only the current user's lists and reports the result", async () => {
+  const invalidatedKeys: (readonly unknown[])[] = [];
+  const successMessages: string[] = [];
+  const errorMessages: string[] = [];
+
+  await handleBulkStatusSuccess(
+    {
+      invalidateQueries: async ({ queryKey }) => {
+        invalidatedKeys.push(queryKey);
+      },
+    },
+    {
+      success: (message) => successMessages.push(message),
+      error: (message) => errorMessages.push(message),
+    },
+    "user-a",
+    { updated_count: 2, completed: true },
+  );
+
+  assert.deepEqual(invalidatedKeys, [todoKeys.user("user-a")]);
+  assert.deepEqual(successMessages, ["2 todos marked completed"]);
+  assert.deepEqual(errorMessages, []);
+});
+
+test("bulk Todo failure preserves the cache and exposes a useful error", () => {
+  const messages: string[] = [];
+
+  handleBulkStatusFailure(
+    { success: () => undefined, error: (message) => messages.push(message) },
+    "Todo not found",
+  );
+
+  assert.deepEqual(messages, ["Todo not found"]);
 });
 
 test("clearing a session removes tokens and all cached queries", () => {

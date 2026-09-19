@@ -12,6 +12,7 @@
   "include": [
     "tests/**/*.test.ts",
     "src/features/todos/api/queryKeys.ts",
+    "src/features/todos/api/mutationHandlers.ts",
     "src/lib/authErrorHandling.ts",
     "src/lib/sessionCleanup.ts"
   ]

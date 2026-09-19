@@ -10,6 +10,10 @@ import {
   todoKeys,
   type TodoFilters,
 } from "./queryKeys";
+import {
+  handleBulkStatusFailure,
+  handleBulkStatusSuccess,
+} from "./mutationHandlers";
 
 export interface Todo {
   id: string;
@@ -187,16 +191,14 @@ export function useBulkUpdateTodoStatus() {
       });
       return response.data as { updated_count: number; completed: boolean };
     },
-    onSuccess: (result, { userId }) => {
-      queryClient.invalidateQueries({ queryKey: todoKeys.user(userId) });
-      toast.success(
-        `${result.updated_count} todo${result.updated_count === 1 ? "" : "s"} marked ${
-          result.completed ? "completed" : "active"
-        }`,
-      );
+    onSuccess: async (result, { userId }) => {
+      await handleBulkStatusSuccess(queryClient, toast, userId, result);
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Failed to update selected todos"));
+      handleBulkStatusFailure(
+        toast,
+        getApiErrorMessage(error, "Failed to update selected todos"),
+      );
     },
   });
 }

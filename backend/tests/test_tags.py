@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from app.models.tag import Tag, todo_tags
 from app.models.todo import Todo
 from app.models.user import User
+from app.services.todo_cache_service import todo_cache_version_key
 
 
 async def get_auth_token(client: AsyncClient, email: str) -> str:
@@ -138,7 +139,11 @@ async def test_tag_crud_is_owner_scoped_and_invalidates_todo_cache(
     assert updated.json()["name"] == "Updated Work"
     assert updated.json()["color"] is None
     assert deleted.status_code == 204
-    assert shared_redis.incr.await_count >= 4
+    # Creating the Todo starts at version 1; only successful Tag mutations
+    # advance the owner's list cache after that. Rejected cross-user/duplicate
+    # requests must not make a cache version appear to have changed.
+    assert await shared_redis.get(todo_cache_version_key(work["user_id"])) == "4"
+    assert shared_redis.incr.await_count == 4
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -197,7 +202,10 @@ async def test_todo_tag_mapping_is_owner_scoped_and_invalidates_cached_lists(
     assert [tag["id"] for tag in todo_with_tag.json()["tags"]] == [owner_tag["id"]]
     assert foreign_detach.status_code == 404
     assert detached.status_code == 204
-    assert shared_redis.incr.await_count >= 5
+    # Todo create + Tag create + successful attach + successful detach. Failed
+    # owner-boundary checks and duplicate mapping must leave the version intact.
+    assert await shared_redis.get(todo_cache_version_key(owner_todo["user_id"])) == "4"
+    assert shared_redis.incr.await_count == 6
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -347,4 +355,7 @@ async def test_bulk_status_update_is_atomic_owner_scoped_and_invalidates_cache(
         first["id"],
         second["id"],
     }
-    assert shared_redis.incr.await_count >= 3
+    # Only the owner's successful creates and bulk transaction invalidate their
+    # cache; the rejected mixed-owner request cannot expose a partial update.
+    assert await shared_redis.get(todo_cache_version_key(first["user_id"])) == "3"
+    assert shared_redis.incr.await_count == 4

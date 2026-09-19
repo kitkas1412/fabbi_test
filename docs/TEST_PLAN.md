@@ -37,7 +37,7 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 | Component | Version/configuration | Status |
 |---|---|---|
 | Browser | Playwright 1.63.0 / Chromium 153.0.8010.12 | Suite 5/5 passes; both required Tier 2B journeys and Tier 4 UI journey complete |
-| Frontend | Host Node 24 / npm; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 11/11, Playwright 5/5, lint, and production build pass |
+| Frontend | Host Node 24 / npm; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 13/13, Playwright 5/5, lint, and production build pass |
 | Backend | Non-root container Python 3.12; `http://localhost:8000` | Fast regression suite 40/40 plus PostgreSQL/Redis integration 2/2; Black and unfiltered Flake8 pass; backend health-gated cold start passes |
 | PostgreSQL | Compose image `postgres:16-alpine` | Running; migration at head; 100 users and 1,000 todos seeded |
 | Redis | Compose image `redis:7-alpine` | Healthy with password authentication; unauthenticated commands are rejected; Journey 1/2 real-cache paths pass |
