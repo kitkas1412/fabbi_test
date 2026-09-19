@@ -82,6 +82,11 @@ invalidation. If Redis is unavailable at that point, the API preserves the
 successful mutation and logs `todo_cache_invalidation_failed` for alerting;
 previous list entries can remain stale for up to the five-minute cache TTL.
 
+The database also contains the Tier 4 Tag foundation: user-owned `tags` and
+the `todo_tags` mapping table. Tag names are unique case-insensitively per user
+at the database boundary. This schema change does not add Tag, filter, or bulk
+action endpoints; run `alembic upgrade head` before implementing those APIs.
+
 By default the seed command creates 100 users and 1,000 TODOs so the assessment is quick to set up. To test performance with a larger dataset, pass seed variables explicitly:
 
 ```bash

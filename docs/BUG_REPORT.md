@@ -7,8 +7,8 @@
 | Assessment branch | `assessment/nguyen-dinh-duc` |
 | Author | Nguyen Dinh Duc |
 | Review date | `2026-09-19` |
-| Application version/commit | `2d8bcff` (`fix(config): restrict CORS origins and disable SQL echo`) |
-| Overall status | Historical remediation findings through `CONFIG-002` are verified. `CACHE-004` is fixed and verified in the current worktree, pending commit. Tier 4 is optional and not implemented. Manual exploratory cases and final PR review remain separate submission activities. |
+| Application version/commit | `08a2643` (`fix(cache): tolerate Redis invalidation failures after Todo commits`) |
+| Overall status | Historical remediation findings through `CACHE-004` are verified. The Tier 4 Tag database foundation is implemented and verified in the current worktree; Tag APIs, filtering, and bulk actions are not part of this change. Manual exploratory cases and final PR review remain separate submission activities. |
 
 ## Purpose
 
@@ -60,7 +60,7 @@ No Critical or High issue may remain Deferred for final submission.
 | INFRA-003 | Network | PostgreSQL and unauthenticated Redis are published to the host | High | `docker-compose.yml` | Verified | `de88674` | `docker compose ps` shows only internal `5432/tcp` and `6379/tcp`; unauthenticated `redis-cli ping` returns `NOAUTH` |
 | INFRA-004 | Containers | Images run as root and lack scoped `.dockerignore` files | Medium | Backend/frontend Dockerfiles | Verified | `de88674` | Backend runs as `uid=999(app)`, frontend as `uid=1000(node)`; scoped ignore files reduce contexts to application inputs and exclude nested caches |
 | INFRA-005 | Build | Frontend build is not reproducible and runtime Vite env is ineffective | Medium | Frontend Dockerfile and Compose | Verified | `de88674` | Image build uses `npm ci`; `VITE_API_URL` is supplied as a build argument; production image build passes |
-| TEST-001 | Coverage | Existing tests cover happy paths but not security boundaries | High | `backend/tests/` | Verified | `cea96fd`, `5816658`, `576e7c6`–current | Suite covers expiry, token type, refresh rotation/revocation, login enumeration, password validation, database email uniqueness, cross-user CRUD, cache isolation/invalidation/commit ordering/outage handling, eager Todo users, bounded pagination, partial updates, required secrets, stable ordering, settings, and CORS configuration; 41/41 pass |
+| TEST-001 | Coverage | Existing tests cover happy paths but not security boundaries | High | `backend/tests/` | Verified | `cea96fd`, `5816658`, `576e7c6`–current | Suite covers expiry, token type, refresh rotation/revocation, login enumeration, password validation, database email/tag uniqueness, cross-user CRUD, cache isolation/invalidation/commit ordering/outage handling, Todo-to-Tag mapping integrity, eager Todo users, bounded pagination, partial updates, required secrets, stable ordering, settings, and CORS configuration; 44/44 pass |
 | TEST-002 | Fidelity | SQLite and per-request Redis mocks do not validate production behavior | Medium | `backend/integration_tests/` | Verified | `6a68c70` | Dedicated Compose suite passes 2/2 against PostgreSQL 16 and authenticated Redis 7: direct user-scoped cache namespaces/invalidation plus atomic concurrent refresh rotation |
 | TEST-003 | Test maintenance | Custom async event-loop fixture is deprecated and will become an error | Low | `backend/tests/`, `backend/pytest.ini` | Verified | `3326159` | Tests declare session loop scope with pytest-asyncio and a warning filter makes reintroducing the deprecated custom fixture fail; fast suite 38/38 has no pytest-asyncio event-loop warning |
 | CONFIG-001 | Backend compatibility | Pydantic class-based `Config` is deprecated before Pydantic v3 | Low | `backend/app/core/config.py` | Verified | `dd80d33` | `SettingsConfigDict` preserves the environment-file and case-sensitive contract; configuration regression plus backend tests, Black, and Flake8 pass without the Pydantic warning |
@@ -225,22 +225,22 @@ Copy this section once per finding or link the register row to the corresponding
 |---|---|---|---|
 | Tier 1: report impactful findings | This document and final PR description | Register contains location, severity, cause, fix and verification for every recorded finding | Complete; PR link remains an external submission task |
 | Tier 1: at least five fixes, including two backend and one frontend | Finding register and implementation commits | AUTH-001/002, TODO-001/002/003, CACHE-001/002, FE-001/002/003 and later fixes | Complete |
-| Tier 2A: at least three backend critical scenarios | `backend/tests/` | 40/40 pass, including expiry, token type, ownership, password validation, partial-update, cache, rotation/revocation, configuration and dependency regressions | Complete |
+| Tier 2A: at least three backend critical scenarios | `backend/tests/` | 44/44 pass, including expiry, token type, ownership, password validation, partial-update, cache, tag-schema, rotation/revocation, configuration and dependency regressions | Complete |
 | Tier 2B: two required Playwright scenarios | `frontend/e2e/` and `frontend/playwright.config.ts` | Lifecycle Journey 1 and cross-user isolation Journey 2 pass; smoke and structured-error regressions bring the suite to 4/4 | Complete (2/2 required journeys) |
 | Tier 2C: manual test plan | `docs/TEST_PLAN.md` | Structured matrix, execution history and automated evidence are recorded; listed exploratory cases remain explicitly Not Run | Complete deliverable |
 | Tier 3A: Todo Sharing specification only | `docs/TODO_SHARING_SPEC.md` | Production-grade proposed specification with stories, schema, APIs, authorization, cache and rollout | Complete |
 | Tier 3B: at least three infrastructure improvements | Compose/Docker changes | Healthy cold start; non-root UIDs; authenticated/internal-only data services; scoped build contexts | Complete (5 improvements) |
 | Tier 3C: query analysis, migration, benchmark, tradeoffs | Migration and `docs/PERFORMANCE_REPORT.md` | PostgreSQL 16.15; 10k users/1M Todos; raw plans/timings; concurrent index migration and rollback evidence | Complete |
 | Git workflow and PR submission | Atomic Conventional Commits and final PR | `<git log/PR>` | In Progress |
-| AI disclosure | `docs/AI_USAGE.md` | Assistance log updated through the final frontend remediation | Complete deliverable; candidate attestation remains pending |
-| Tier 4 bonus | Tags, filters, bulk actions and tests | `<PR/test report>` | Not Started |
+| AI disclosure | `docs/AI_USAGE.md` | Assistance log updated through cache resilience and Tag database work | Complete deliverable; candidate attestation remains pending |
+| Tier 4 bonus | Tags, filters, bulk actions and tests | Tag/mapping schema, migration, indexes, and DB regressions | In Progress — database foundation only; no Tag API/filter/bulk UI |
 
 ## Verification summary
 
 | Check | Command/environment | Expected | Actual | Date | Evidence |
 |---|---|---|---|---|---|
 | Compose validation | `docker compose --env-file .env.example config -q` | Pass | Pass (exit 0) | `2026-09-18` | Required secret variables resolve from the documented template; rendered Compose is valid |
-| Backend tests | `docker compose run --rm --no-deps backend pytest tests/ -v` | Pass | Pass in a fresh non-root Python 3.12 image: 41/41; no warnings after the bcrypt migration | `2026-09-19` | Includes refresh rotation/revocation, login-enumeration, password validation, CORS configuration, database uniqueness, cache commit-ordering/outage resilience, eager Todo users, bounded pagination, required-secret, deterministic-order, settings, and bcrypt regressions |
+| Backend tests | `docker compose run --rm --no-deps backend pytest tests/ -v` | Pass | Pass in a fresh non-root Python 3.12 image: 44/44 | `2026-09-19` | Includes case-insensitive Tag uniqueness, duplicate mapping rejection, filtering-index metadata, and all previous auth/Todo/cache/config regressions |
 | PostgreSQL/Redis integration tests | `docker compose run --rm --no-deps backend sh -c 'alembic upgrade head && pytest integration_tests/ -q'` | Pass | Pass in non-root Python 3.12.14 image: 2/2 | `2026-09-18` | Uses PostgreSQL 16 and authenticated Redis 7; verifies cache key isolation/invalidation and one successful result across concurrent refresh attempts |
 | Backend regression suite | `uv run --python 3.12 --isolated --no-project --with-requirements requirements.txt pytest tests/ -v` | Pass | Pass on Python 3.12.12: 19 collected, 19 passed; 3 deprecation warning groups | `2026-09-18` | Covers AUTH-001/002, TODO-001/002/003, CACHE-001/002; SQLite and stateful Redis mock only |
 | Backend format/lint | `black --check .`; `flake8 app tests integration_tests` | Pass | Black passes for all 33 Python files; Flake8 completes without findings | `2026-09-18` | `QUALITY-001` verified after five documented, scoped `E402` suppressions |

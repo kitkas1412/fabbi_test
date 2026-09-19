@@ -49,6 +49,7 @@ Record material assistance, not every autocomplete event. Group closely related 
 | AI-021 | `2026-09-19` | Password-validation contract | Align backend registration/login schemas with the frontend's minimum password rule, keep bcrypt's byte limit, and add API/unit regressions | Backend user schemas/auth route/tests; frontend Zod schema/tests; assessment documents | Accepted in `3d7029d` | Backend 38/38, Black, Flake8; frontend 10/10, ESLint, and production build pass |
 | AI-022 | `2026-09-19` | CORS and SQL logging hardening | Restrict credentialed CORS to configured origins, disable SQL echo by default, and add configuration/API regressions | Backend settings, application middleware, Compose/environment template, tests, and assessment documents | Accepted in `2d8bcff` | Backend 40/40, Black, and Flake8 pass |
 | AI-023 | `2026-09-19` | Redis-outage resilience | Keep committed Todo mutations successful when Redis invalidation fails, log the event for alerting, and inject a Redis failure in an API regression | Todo mutation helper, backend tests, and assessment documents | Changes accepted in the current worktree | Backend 41/41, Black, and Flake8 pass |
+| AI-024 | `2026-09-19` | Tag database foundation | Add user-owned Tag and Todo-to-Tag models, a case-insensitive unique name index, mapping/filter indexes, Alembic migration, and database regressions | Backend models, migration, tests, and assessment documents | Changes accepted in the current worktree | Backend 44/44, Black, Flake8, and PostgreSQL 16 upgrade → downgrade → re-upgrade pass |
 
 If full prompt logs are required, store sanitized logs under `docs/ai-prompts/` and link them here. Never include secrets, access tokens, personal data, private URLs, or hidden evaluation material.
 
@@ -69,12 +70,12 @@ If full prompt logs are required, store sanitized logs under `docs/ai-prompts/` 
 |---|---|---|---|
 | `AGENTS.md` | Repository analysis and drafting | Candidate review pending | Compared with README and current code structure |
 | `REMEDIATION_PLAN.md` | Planning and risk prioritization | Candidate review pending | Mapped against mandatory and bonus README requirements |
-| `docs/BUG_REPORT.md` | Issue inventory, status tracking, and evidence synchronization | Candidate review and final PR link pending | All recorded remediation findings map to commits/tests; Tier 4 is explicitly not implemented |
+| `docs/BUG_REPORT.md` | Issue inventory, status tracking, and evidence synchronization | Candidate review and final PR link pending | All recorded remediation findings map to commits/tests; Tier 4 has a database foundation only |
 | `docs/TEST_PLAN.md` | Test-plan structure, environment metadata, and execution log | Candidate approval and selected exploratory manual cases pending | Backend/frontend automated reruns recorded; unexecuted cases are marked Not Run |
 | `docs/TODO_SHARING_SPEC.md` | Production-ready specification | Candidate review pending | Complete proposed design compared with README and provided template |
 | `docs/PERFORMANCE_REPORT.md` and `docs/performance/` | PostgreSQL benchmark design, raw SQL/plans/timings, safety analysis | Candidate review pending | PostgreSQL 16.15 evidence on 10k users/1M Todos; before/after results, storage/write impact, and limitations retained |
 | `docs/AI_USAGE.md` | Disclosure structure and ongoing assistance log | Candidate confirmation and final sign-off pending | Cross-checked against material assistance, Git history, and recorded verification |
-| Backend auth/Todo/cache/config source and tests | Regression design and implementation assistance | Candidate review remains required | Current non-root container suite 41/41; Black and unfiltered Flake8 pass; PostgreSQL/Redis integration 2/2 passes |
+| Backend auth/Todo/cache/config source and tests | Regression design and implementation assistance | Candidate review remains required | Current non-root container suite 44/44; Black and unfiltered Flake8 pass; PostgreSQL/Redis integration 2/2 passes |
 | Frontend auth/query/session source and tests | Query-key/session design and implementation assistance | Candidate review remains required | Unit tests 10/10, ESLint and production build pass |
 | Frontend Playwright setup and smoke test | Dependency/configuration and test scaffolding assistance | Both required journeys complete; candidate review pending | Playwright 1.63.0 suite 4/4; headless/headed/UI commands documented |
 | Frontend Playwright lifecycle Journey 1 | Browser-flow implementation, disposable data, and evidence synchronization | Candidate review pending | Registration/login and create/edit/complete/delete/logout pass; final deleted-resource GET returns 404 |
@@ -111,8 +112,8 @@ Add source code and test files to this table when AI materially contributes to t
 - Suggested security controls require threat-model and integration review.
 - Suggested database indexes require measured PostgreSQL evidence; the current benchmark supplies PostgreSQL evidence but remains local, warm-cache, and workload-specific.
 - Fixed auth, ownership, partial-update, cache, and frontend-session findings have automated regression evidence. A forced component-level optimistic-mutation failure and selected exploratory manual cases remain useful additional coverage.
-- The first backend test attempt was blocked because the system Python environment lacked `pytest`; later isolated and non-root container runs pass, with the current fast suite at 40/40.
-- Backend fast tests use SQLite and a stateful Redis mock; separate PostgreSQL/Redis integration and refresh-concurrency evidence pass 2/2. Redis-outage behavior is not exercised.
+- The first backend test attempt was blocked because the system Python environment lacked `pytest`; later isolated and non-root container runs pass, with the current fast suite at 44/44.
+- Backend fast tests use SQLite and a stateful Redis mock; separate PostgreSQL/Redis integration and refresh-concurrency evidence pass 2/2. The fast suite injects the post-commit Redis invalidation failure, while a temporary PostgreSQL 16 instance validates the Tag migration upgrade/downgrade cycle.
 - Both required Playwright journeys pass; same-context account-switch cache behavior still has unit coverage only.
 - Candidate review, identity spelling confirmation, and final attestation are pending.
 
