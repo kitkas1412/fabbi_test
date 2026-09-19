@@ -41,6 +41,13 @@ test("route pages are lazy loaded instead of inflating the entry bundle", () => 
   assert.match(routerSource, /<Suspense fallback=/);
 });
 
+test("Vite config remains compatible with its native config loader", () => {
+  const viteConfigSource = readFileSync("vite.config.ts", "utf8");
+
+  assert.match(viteConfigSource, /import\.meta\.dirname/);
+  assert.doesNotMatch(viteConfigSource, /__dirname/);
+});
+
 test("Todo dialogs include a description for screen reader users", () => {
   const todoFormSource = readFileSync(
     "src/features/todos/components/TodoForm.tsx",
