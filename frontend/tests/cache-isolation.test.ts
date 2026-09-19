@@ -7,6 +7,7 @@ import {
   todoKeys,
 } from "../src/features/todos/api/queryKeys.js";
 import { shouldClearSessionForUnauthorized } from "../src/lib/authErrorHandling.js";
+import { getApiErrorMessage } from "../src/lib/apiError.js";
 import { clearUserSession } from "../src/lib/sessionCleanup.js";
 
 test("todo list keys are isolated by user and pagination", () => {
@@ -49,6 +50,32 @@ test("Todo dialogs include a description for screen reader users", () => {
   assert.match(todoFormSource, /DialogDescription/);
   assert.match(todoFormSource, /Add a title and optional details/);
   assert.match(todoFormSource, /Update the title or details/);
+});
+
+test("API validation details are converted to a safe toast message", () => {
+  const validationError = {
+    isAxiosError: true,
+    response: {
+      data: {
+        detail: [
+          {
+            loc: ["body", "email"],
+            msg: "The email address is not valid",
+            type: "value_error",
+          },
+        ],
+      },
+    },
+  };
+
+  assert.equal(
+    getApiErrorMessage(validationError, "Registration failed."),
+    "The email address is not valid",
+  );
+  assert.equal(
+    getApiErrorMessage({ isAxiosError: true, response: { data: {} } }, "Fallback"),
+    "Fallback",
+  );
 });
 
 test("clearing a session removes tokens and all cached queries", () => {
