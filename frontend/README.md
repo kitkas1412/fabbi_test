@@ -71,10 +71,10 @@ PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:e2e
 The smoke test validates the browser setup without backend data. A structured
 error regression intercepts registration and confirms that a FastAPI 422
 `detail` array is rendered safely. Journey 1 uses the deterministic Journey 1
-account to cover registration, logout/login, Todo creation, editing, completion,
-deletion, and final logout against the backend at `http://localhost:8000`.
+account to cover registration, logout/login, Todo creation, editing, completion
+by clicking its name, deletion, and final logout against the backend at `http://localhost:8000`.
 Journey 2 uses two isolated browser contexts and verifies that user B cannot
-see, read, update, or delete user A's Todo. The current suite therefore has four
+see, read, update, or delete user A's Todo. The current suite therefore has five
 Chromium tests.
 
 Failure artifacts are written to `test-results/`. The HTML report is written to

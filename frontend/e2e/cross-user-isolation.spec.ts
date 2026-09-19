@@ -180,9 +180,7 @@ test("prevents user B from viewing or mutating user A's Todo", async ({
       .getByTestId("todo-item")
       .filter({ hasText: todoTitle });
     await expect(unchangedUserATodo).toContainText(todoDescription);
-    await expect(
-      unchangedUserATodo.getByRole("checkbox", { name: todoTitle }),
-    ).not.toBeChecked();
+    await expect(unchangedUserATodo.getByText("Active", { exact: true })).toBeVisible();
   } finally {
     if (todoId) {
       await request.delete(`${E2E_API_BASE_URL}/api/v1/todos/${todoId}`, {

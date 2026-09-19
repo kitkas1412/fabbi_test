@@ -111,17 +111,14 @@ test("registers, logs in, and completes the Todo lifecycle", async ({
   await expect(updatedTodo).toContainText(updatedDescription);
   await expect(page.getByText(initialTitle, { exact: true })).toHaveCount(0);
 
-  const completedCheckbox = updatedTodo.getByRole("checkbox", {
-    name: updatedTitle,
-  });
   const completeResponsePromise = page.waitForResponse(
     (response) =>
       response.url().includes("/api/v1/todos/") &&
       response.request().method() === "PUT",
   );
-  await completedCheckbox.click();
+  await updatedTodo.getByRole("button", { name: `Mark ${updatedTitle} as completed` }).click();
   expect((await completeResponsePromise).status()).toBe(200);
-  await expect(completedCheckbox).toBeChecked();
+  await expect(updatedTodo.getByText("Completed", { exact: true })).toBeVisible();
 
   const deleteResponsePromise = page.waitForResponse(
     (response) =>

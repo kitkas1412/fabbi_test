@@ -1,6 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2 } from "lucide-react";
+import { CheckCircle2, Circle, Pencil, Trash2 } from "lucide-react";
 import type { Todo } from "../api/todos";
 
 interface TodoItemProps {
@@ -29,29 +29,26 @@ export function TodoItem({
       data-testid="todo-item"
       className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
     >
-      <div className="flex shrink-0 flex-col items-center gap-1.5">
+      <div className="flex shrink-0 items-center">
         <Checkbox
           id={`select-todo-${todo.id}`}
           checked={selected}
           aria-label="Select for bulk action"
           onCheckedChange={(isSelected) => onSelect(todo.id, isSelected === true)}
         />
-        <Checkbox
-          id={`todo-${todo.id}`}
-          checked={todo.completed}
-          onCheckedChange={() => onToggle(todo)}
-        />
       </div>
 
       <div className="flex-1 min-w-0">
-        <label
-          htmlFor={`todo-${todo.id}`}
-          className={`text-sm font-medium cursor-pointer ${
+        <button
+          type="button"
+          onClick={() => onToggle(todo)}
+          aria-label={`Mark ${todo.title} as ${todo.completed ? "active" : "completed"}`}
+          className={`text-left text-sm font-medium transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
             todo.completed ? "line-through text-muted-foreground" : ""
           }`}
         >
           {todo.title}
-        </label>
+        </button>
         {todo.description && (
           <p className="text-xs text-muted-foreground mt-0.5 truncate">
             {todo.description}
@@ -79,6 +76,18 @@ export function TodoItem({
           </div>
         )}
       </div>
+
+      <span
+        className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground"
+        aria-label={`Status: ${todo.completed ? "Completed" : "Active"}`}
+      >
+        {todo.completed ? (
+          <CheckCircle2 className="size-3.5 text-emerald-600" aria-hidden="true" />
+        ) : (
+          <Circle className="size-3.5" aria-hidden="true" />
+        )}
+        {todo.completed ? "Completed" : "Active"}
+      </span>
 
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <Button

@@ -100,6 +100,6 @@ test("manages Tags, filters Todos, and bulk-updates selected work", async (
   );
   await page.getByRole("button", { name: "Mark completed" }).click();
   expect((await bulkResponsePromise).status()).toBe(200);
-  await expect(taggedTodoRow.getByRole("checkbox", { name: taggedTitle })).toBeChecked();
-  await expect(plainTodoRow.getByRole("checkbox", { name: plainTitle })).toBeChecked();
+  await expect(taggedTodoRow.getByText("Completed", { exact: true })).toBeVisible();
+  await expect(plainTodoRow.getByText("Completed", { exact: true })).toBeVisible();
 });

@@ -65,6 +65,17 @@ test("Todo rows use their stable entity ID as the React key", () => {
   assert.doesNotMatch(todoListSource, /key=\{index\}/);
 });
 
+test("each Todo row exposes only the multi-select checkbox", () => {
+  const todoItemSource = readFileSync(
+    "src/features/todos/components/TodoItem.tsx",
+    "utf8",
+  );
+
+  assert.equal((todoItemSource.match(/<Checkbox/g) ?? []).length, 1);
+  assert.match(todoItemSource, /aria-label="Select for bulk action"/);
+  assert.match(todoItemSource, /onClick=\{\(\) => onToggle\(todo\)\}/);
+});
+
 test("route pages are lazy loaded instead of inflating the entry bundle", () => {
   const routerSource = readFileSync("src/router/index.tsx", "utf8");
 
