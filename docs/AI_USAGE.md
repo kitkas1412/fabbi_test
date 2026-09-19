@@ -6,8 +6,8 @@
 |---|---|
 | Candidate | Nguyen Dinh Duc |
 | Assessment branch | `assessment/nguyen-dinh-duc` |
-| Covered period | `2026-09-18` – ongoing |
-| Last updated | `2026-09-18` |
+| Covered period | `2026-09-18` – `2026-09-19` |
+| Last updated | `2026-09-19` |
 | Status | In Progress |
 
 ## 1. Disclosure statement
@@ -43,6 +43,8 @@ Record material assistance, not every autocomplete event. Group closely related 
 | AI-015 | `2026-09-18` | Deterministic E2E data | Replace timestamp data with fixed retry-indexed fixtures, add an allowlisted transactional reset, chain reset into headless/headed/UI scripts, and document exact commands | Backend E2E reset utility, frontend fixture data, package scripts, GUIDE, README, and assessment evidence | Deterministic setup accepted into the worktree | Two consecutive headless runs pass 3/3; second reset deletes prior fixtures; headed `--list` resets and lists 3 tests; Black/Flake8 pass for reset utility |
 | AI-016 | `2026-09-18` | Infrastructure hardening | Add health-gated startup, scoped Docker contexts, non-root/multi-stage images, required external configuration, authenticated Redis, and internal-only data-service ports | Compose, Dockerfiles, backend settings/tests, environment templates, GUIDE, and assessment evidence | Tier 3B implementation accepted into the worktree | Compose config/build/cold start pass; all services healthy; app UIDs 999/1000; Redis rejects no-auth; backend 22/22, frontend tests/lint/build pass |
 | AI-017 | `2026-09-18` | PostgreSQL performance | Seed an isolated 10k-user/1M-Todo PostgreSQL database; retain exact SQL, plans and all timings; add deterministic Todo order and concurrent composite index migration; measure before/after and migration/write/storage tradeoffs | Todo service/model/test, Alembic migration, performance report and raw benchmark artefacts | Tier 3C implementation accepted into the worktree | Q1 median 22.245→0.056 ms; Q2 20.471→0.064 ms; upgrade/downgrade/re-upgrade pass; backend 23/23, Black and Flake8 pass |
+| AI-018 | `2026-09-18`–`2026-09-19` | Final remediation | Implement and verify refresh-token rotation/logout revocation, login-enumeration protection, commit-ordered cache invalidation, email uniqueness, eager Todo loading, bounded pagination, integration coverage, settings/dependency maintenance, and frontend quality fixes | Backend auth/Todo/cache/config/tests; frontend dependencies, routes, dialogs, error handling, Vite configuration; assessment documents | Changes accepted as separate Conventional Commits | Fast backend 34/34; PostgreSQL/Redis integration 2/2; frontend unit 9/9, lint/build, Playwright 4/4; audits report no vulnerabilities |
+| AI-019 | `2026-09-19` | Documentation synchronization | Reconcile all project documentation with current source, commits, public API, test scripts, and recorded verification | `GUIDE.md`, frontend README, remediation plan, and assessment documents | Current-state references, commands, and evidence synchronized | Git history and source inspected; documentation diff checked |
 
 If full prompt logs are required, store sanitized logs under `docs/ai-prompts/` and link them here. Never include secrets, access tokens, personal data, private URLs, or hidden evaluation material.
 
@@ -50,7 +52,7 @@ If full prompt logs are required, store sanitized logs under `docs/ai-prompts/` 
 
 | Decision | AI contribution | Candidate decision and rationale | Evidence |
 |---|---|---|---|
-| Prioritize authorization, cache isolation, and JWT before feature work | Identified these as the highest-risk confidentiality/integrity failures | Adopted; regression coverage and fixes were implemented before optional features | Commits `cea96fd` through `5816658`; backend suite 19/19 passes |
+| Prioritize authorization, cache isolation, and JWT before feature work | Identified these as the highest-risk confidentiality/integrity failures | Adopted; regression coverage and fixes were implemented before optional features | Commits `cea96fd` through `b35b042`; fast backend suite now passes 34/34 |
 | Target the maximum 115/100 score | Mapped 100 mandatory points plus 15 Tier 4 bonus points | Adopted for planning; mandatory gates must pass before bonus work | README traceability matrix |
 | Keep Todo Sharing as specification-only work | Flagged README's explicit instruction not to implement Task 3A | Adopted to prevent scope expansion | `docs/TODO_SHARING_SPEC.md` |
 | Track assessment documents while keeping the answer key ignored | Identified the conflict between required `docs/` deliverables and the root ignore rule | Adopted; removed broad `docs/` ignore and retained `docs/ANSWER_KEY.md` | `git check-ignore` verification |
@@ -63,19 +65,19 @@ If full prompt logs are required, store sanitized logs under `docs/ai-prompts/` 
 |---|---|---|---|
 | `AGENTS.md` | Repository analysis and drafting | Candidate review pending | Compared with README and current code structure |
 | `REMEDIATION_PLAN.md` | Planning and risk prioritization | Candidate review pending | Mapped against mandatory and bonus README requirements |
-| `docs/BUG_REPORT.md` | Issue inventory, status tracking, and evidence synchronization | Candidate review and final PR links pending | Fixed findings mapped to commits/tests; unresolved and integration-dependent findings remain open |
-| `docs/TEST_PLAN.md` | Test-plan structure, environment metadata, and execution log | Manual/E2E execution and candidate approval pending | Backend/frontend automated reruns recorded without marking unexecuted cases complete |
-| `docs/TODO_SHARING_SPEC.md` | Specification skeleton | Product/security/backend decisions pending | Structure compared with README and provided template |
+| `docs/BUG_REPORT.md` | Issue inventory, status tracking, and evidence synchronization | Candidate review and final PR link pending | All recorded remediation findings map to commits/tests; Tier 4 is explicitly not implemented |
+| `docs/TEST_PLAN.md` | Test-plan structure, environment metadata, and execution log | Candidate approval and selected exploratory manual cases pending | Backend/frontend automated reruns recorded; unexecuted cases are marked Not Run |
+| `docs/TODO_SHARING_SPEC.md` | Production-ready specification | Candidate review pending | Complete proposed design compared with README and provided template |
 | `docs/PERFORMANCE_REPORT.md` and `docs/performance/` | PostgreSQL benchmark design, raw SQL/plans/timings, safety analysis | Candidate review pending | PostgreSQL 16.15 evidence on 10k users/1M Todos; before/after results, storage/write impact, and limitations retained |
 | `docs/AI_USAGE.md` | Disclosure structure and ongoing assistance log | Candidate confirmation and final sign-off pending | Cross-checked against material assistance, Git history, and recorded verification |
-| Backend auth/Todo/cache/config source and tests | Regression design and implementation assistance | Candidate review remains required | Current non-root Python 3.12.14 container suite 23/23; Black and unfiltered Flake8 pass; integration limitations documented |
-| Frontend auth/query/session source and tests | Query-key/session design and implementation assistance | Candidate review remains required | Unit tests 2/2, ESLint pass, production build pass |
-| Frontend Playwright setup and smoke test | Dependency/configuration and test scaffolding assistance | Both required journeys complete; candidate review pending | Playwright 1.63.0 suite 3/3; headless/headed/UI commands documented |
+| Backend auth/Todo/cache/config source and tests | Regression design and implementation assistance | Candidate review remains required | Current non-root container suite 34/34; Black and unfiltered Flake8 pass; PostgreSQL/Redis integration 2/2 passes |
+| Frontend auth/query/session source and tests | Query-key/session design and implementation assistance | Candidate review remains required | Unit tests 9/9, ESLint and production build pass |
+| Frontend Playwright setup and smoke test | Dependency/configuration and test scaffolding assistance | Both required journeys complete; candidate review pending | Playwright 1.63.0 suite 4/4; headless/headed/UI commands documented |
 | Frontend Playwright lifecycle Journey 1 | Browser-flow implementation, disposable data, and evidence synchronization | Candidate review pending | Registration/login and create/edit/complete/delete/logout pass; final deleted-resource GET returns 404 |
-| Frontend Playwright cross-user Journey 2 | Two-context authorization/isolation flow and evidence synchronization | Candidate review pending | B list/UI excludes A data; B GET/PUT/DELETE return 404; A Todo remains unchanged; suite 3/3 passes |
+| Frontend Playwright cross-user Journey 2 | Two-context authorization/isolation flow and evidence synchronization | Candidate review pending | B list/UI excludes A data; B GET/PUT/DELETE return 404; A Todo remains unchanged; suite 4/4 passes |
 | Deterministic Playwright data setup | Allowlisted reset design, retry-indexed fixtures, scripts, and documentation | Candidate review pending | Exact 9-email reset; two back-to-back headless runs and headed command listing pass |
 | Docker/Compose infrastructure hardening | Readiness, build-context, privilege, secret/configuration, Redis-auth, and port-isolation implementation | Candidate review pending | Cold start/build pass; four services healthy; non-root IDs and Redis auth verified; backend/frontend regressions pass |
-| PostgreSQL Todo index and benchmark | Index selection, deterministic ordering, migration safety, raw evidence, and performance report | Candidate review pending | Isolated 1M-row PostgreSQL benchmark; concurrent migration rollback/reapply and backend 23/23 regression pass |
+| PostgreSQL Todo index and benchmark | Index selection, deterministic ordering, migration safety, raw evidence, and performance report | Candidate review pending | Isolated 1M-row PostgreSQL benchmark; concurrent migration rollback/reapply and current backend 34/34 regression evidence |
 
 Add source code and test files to this table when AI materially contributes to them.
 
@@ -93,8 +95,8 @@ Add source code and test files to this table when AI materially contributes to t
 - [ ] Confirmed behavior against `README.md` and API contracts.
 - [x] Ran relevant backend tests.
 - [x] Ran relevant frontend lint/build/tests.
-- [ ] Ran PostgreSQL/Redis integration checks where mocks are insufficient.
-- [ ] Reviewed migrations and rollback behavior.
+- [x] Ran PostgreSQL/Redis integration checks where mocks are insufficient.
+- [x] Reviewed migrations and rollback behavior.
 - [x] Validated Docker/runtime configuration.
 - [x] Removed tracked environment files and verified no real secrets, personal data, or private context were added.
 - [ ] Recorded checks that could not be run and why.
@@ -103,10 +105,10 @@ Add source code and test files to this table when AI materially contributes to t
 
 - AI output can be incomplete or incorrect and is not treated as test evidence.
 - Suggested security controls require threat-model and integration review.
-- Suggested database indexes require measured PostgreSQL evidence.
-- Fixed auth, ownership, partial-update, cache, and frontend-session findings now have automated regression evidence; unresolved findings remain primarily baseline/static or manual observations.
-- The first backend test attempt was blocked because the system Python environment lacked `pytest`; an isolated `uv --no-project` Python 3.12.12 run passed 19/19 without recreating `uv.lock`, and the latest non-root container run passes 22/22 after adding required-secret regressions.
-- Backend cache tests use a stateful Redis mock; PostgreSQL/Redis integration and concurrency evidence are still pending.
+- Suggested database indexes require measured PostgreSQL evidence; the current benchmark supplies PostgreSQL evidence but remains local, warm-cache, and workload-specific.
+- Fixed auth, ownership, partial-update, cache, and frontend-session findings have automated regression evidence. A forced component-level optimistic-mutation failure and selected exploratory manual cases remain useful additional coverage.
+- The first backend test attempt was blocked because the system Python environment lacked `pytest`; later isolated and non-root container runs pass, with the current fast suite at 34/34.
+- Backend fast tests use SQLite and a stateful Redis mock; separate PostgreSQL/Redis integration and refresh-concurrency evidence pass 2/2. Redis-outage behavior is not exercised.
 - Both required Playwright journeys pass; same-context account-switch cache behavior still has unit coverage only.
 - Candidate review, identity spelling confirmation, and final attestation are pending.
 

@@ -25,7 +25,7 @@ npm run build
 Start the current backend stack from the repository root:
 
 ```bash
-docker compose up -d --build postgres redis backend
+docker compose up -d --build --wait postgres redis backend
 ```
 
 Then install the pinned Node dependencies and Chromium browser binary:
@@ -68,11 +68,14 @@ this variable is set, Playwright does not start its own Vite process:
 PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:e2e
 ```
 
-The smoke test validates the browser setup without backend data. Journey 1 uses
-the deterministic Journey 1 account to cover registration, logout/login, Todo
-creation, editing, completion, deletion, and final logout against the backend at
-`http://localhost:8000`. Journey 2 uses two isolated browser contexts and
-verifies that user B cannot see, read, update, or delete user A's Todo.
+The smoke test validates the browser setup without backend data. A structured
+error regression intercepts registration and confirms that a FastAPI 422
+`detail` array is rendered safely. Journey 1 uses the deterministic Journey 1
+account to cover registration, logout/login, Todo creation, editing, completion,
+deletion, and final logout against the backend at `http://localhost:8000`.
+Journey 2 uses two isolated browser contexts and verifies that user B cannot
+see, read, update, or delete user A's Todo. The current suite therefore has four
+Chromium tests.
 
 Failure artifacts are written to `test-results/`. The HTML report is written to
 `playwright-report/` and can be opened with:

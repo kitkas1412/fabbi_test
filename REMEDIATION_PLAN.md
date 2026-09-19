@@ -2,7 +2,7 @@
 
 ## 1. Mục tiêu
 
-Tài liệu này xác định quy trình hoàn thành toàn bộ assessment của Fabbi Todo App theo mức độ rủi ro, quan hệ phụ thuộc và khả năng triển khai an toàn. Mục tiêu là đạt đủ 100 điểm bắt buộc và 15 điểm bonus, tức mức tối đa 115/100, đồng thời xử lý toàn bộ vấn đề được phát hiện trong quá trình audit. Mục tiêu không chỉ là làm cho test hiện tại chạy qua, mà là đảm bảo:
+Tài liệu này là kế hoạch và lịch sử quyết định cho assessment của Fabbi Todo App. Các hạng mục bắt buộc đã có implementation và bằng chứng tương ứng; trạng thái hiện hành được theo dõi trong `docs/BUG_REPORT.md` và `docs/TEST_PLAN.md`. Tier 4 vẫn là phần bonus, chưa được yêu cầu triển khai và không được suy diễn là đã hoàn thành. Mục tiêu của kế hoạch là đảm bảo:
 
 - Không có truy cập hoặc rò rỉ dữ liệu chéo người dùng.
 - Token được xác thực, xoay vòng và thu hồi đúng.
@@ -12,7 +12,7 @@ Tài liệu này xác định quy trình hoàn thành toàn bộ assessment củ
 - Thay đổi có thể review, rollout và rollback độc lập.
 - Mỗi yêu cầu trong README có artefact và bằng chứng kiểm chứng tương ứng.
 
-Kế hoạch bao gồm Tier 4 để lấy đủ 15 điểm bonus. Todo Sharing vẫn chỉ được viết đặc tả production-grade theo đúng README; không triển khai code Todo Sharing vì đó không phải yêu cầu của Task 3A.
+Kế hoạch có mô tả Tier 4 để tham khảo nếu được yêu cầu sau này. Todo Sharing vẫn chỉ được viết đặc tả production-grade theo đúng README; không triển khai code Todo Sharing vì đó không phải yêu cầu của Task 3A.
 
 ## 2. Nguyên tắc thực hiện
 
@@ -515,11 +515,10 @@ Một hạng mục chỉ được coi là hoàn tất khi:
 - `git diff` chỉ chứa thay đổi trong scope và không làm mất thay đổi của người khác.
 - Issue register và README traceability đã chuyển sang `verified` với evidence cụ thể.
 
-Assessment chỉ được coi là hoàn tất khi:
-
-- đạt toàn bộ gate bắt buộc tương ứng 100 điểm;
-- hoàn thành toàn bộ Tier 4 tương ứng 15 điểm bonus;
-- final score audit không còn ô trống hoặc bằng chứng chưa kiểm chứng.
+Assessment bắt buộc được coi là hoàn tất khi đạt toàn bộ gate tương ứng 100
+điểm và final score audit không còn ô trống hoặc bằng chứng chưa kiểm chứng.
+Tier 4 chỉ được thêm vào điều kiện hoàn tất khi có yêu cầu thực hiện phần bonus;
+khi đó cần hoàn thành toàn bộ 15 điểm bonus cùng các gate bắt buộc.
 
 ## 20. Kết quả mong đợi sau cùng
 
@@ -532,6 +531,8 @@ Sau khi hoàn thành theo thứ tự trên, dự án phải đạt được các
 - Database bảo vệ uniqueness/integrity kể cả dưới concurrency.
 - Query có thứ tự ổn định, index được chứng minh bằng benchmark.
 - Container khởi động ổn định, chạy với quyền tối thiểu và không chứa secret mặc định.
-- Tags, filtering và bulk actions hoạt động end to end theo toàn bộ rule Tier 4.
+- Nếu Tier 4 được yêu cầu: tags, filtering và bulk actions hoạt động end to end
+  theo toàn bộ rule Tier 4.
 - Bộ test và tài liệu đủ để ngăn các lỗi quan trọng tái xuất hiện.
-- Submission có bằng chứng truy vết cho toàn bộ 100 điểm bắt buộc và 15 điểm bonus.
+- Submission có bằng chứng truy vết cho toàn bộ 100 điểm bắt buộc và, nếu được
+  yêu cầu, 15 điểm bonus.

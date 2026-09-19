@@ -103,7 +103,7 @@ uvicorn app.main:app --reload --port 8000
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -126,7 +126,7 @@ npm run dev
 | GET    | `/api/v1/todos`      | List todos (paginated) |
 | POST   | `/api/v1/todos`      | Create a new todo      |
 | GET    | `/api/v1/todos/{id}` | Get a specific todo    |
-| PUT    | `/api/v1/todos/{id}` | Update a todo          |
+| PUT    | `/api/v1/todos/{id}` | Partially update a todo |
 | DELETE | `/api/v1/todos/{id}` | Delete a todo          |
 
 ## Project Structure
@@ -183,7 +183,7 @@ Start the current backend services, install Chromium once, then run the suite
 headless or headed:
 
 ```bash
-docker compose up -d --build postgres redis backend
+docker compose up -d --build --wait postgres redis backend
 cd frontend
 npm ci
 npm run test:e2e:install
@@ -203,6 +203,19 @@ automatically. Set
 frontend. The complete authentication/Todo and cross-user Tier 2B journeys
 require the backend and disposable test accounts. Journey 1 covers the complete
 authentication/Todo lifecycle; Journey 2 covers cross-user UI and API isolation.
+The suite also includes a frontend-only smoke check and a regression for a
+FastAPI-style structured validation error, for four Chromium tests in total.
+
+### API behavior notes
+
+- Access-only endpoints reject expired, malformed, revoked, and refresh JWTs.
+- `PUT /api/v1/todos/{id}` has partial-update semantics: omitted fields stay
+  unchanged, `completed: false` is persisted, and `description: null` clears
+  the description.
+- Todo reads and mutations are owner-scoped and return `404` when the Todo is
+  missing or belongs to another user.
+- `GET /api/v1/todos` defaults to `page=1&size=20`; `size` is constrained to
+  `1..100` and results are ordered by `created_at DESC, id DESC`.
 
 ### Database Performance Benchmarking
 To test database indexing and query execution times with 1 million records:
