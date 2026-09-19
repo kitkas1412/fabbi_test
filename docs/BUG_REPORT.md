@@ -226,14 +226,14 @@ Copy this section once per finding or link the register row to the corresponding
 | Tier 1: report impactful findings | This document and final PR description | Register contains location, severity, cause, fix and verification for every recorded finding | Complete; PR link remains an external submission task |
 | Tier 1: at least five fixes, including two backend and one frontend | Finding register and implementation commits | AUTH-001/002, TODO-001/002/003, CACHE-001/002, FE-001/002/003 and later fixes | Complete |
 | Tier 2A: at least three backend critical scenarios | `backend/tests/` | 48/48 pass, including expiry, token type, ownership, password validation, partial-update, cache, Tag API/filter/bulk, rotation/revocation, configuration and dependency regressions | Complete |
-| Tier 2B: two required Playwright scenarios | `frontend/e2e/` and `frontend/playwright.config.ts` | Lifecycle Journey 1 and cross-user isolation Journey 2 pass; smoke and structured-error regressions bring the suite to 4/4 | Complete (2/2 required journeys) |
+| Tier 2B: two required Playwright scenarios | `frontend/e2e/` and `frontend/playwright.config.ts` | Lifecycle Journey 1 and cross-user isolation Journey 2 pass; smoke, structured-error, and Tier 4 regressions bring the suite to 5/5 | Complete (2/2 required journeys) |
 | Tier 2C: manual test plan | `docs/TEST_PLAN.md` | Structured matrix, execution history and automated evidence are recorded; listed exploratory cases remain explicitly Not Run | Complete deliverable |
 | Tier 3A: Todo Sharing specification only | `docs/TODO_SHARING_SPEC.md` | Production-grade proposed specification with stories, schema, APIs, authorization, cache and rollout | Complete |
 | Tier 3B: at least three infrastructure improvements | Compose/Docker changes | Healthy cold start; non-root UIDs; authenticated/internal-only data services; scoped build contexts | Complete (5 improvements) |
 | Tier 3C: query analysis, migration, benchmark, tradeoffs | Migration and `docs/PERFORMANCE_REPORT.md` | PostgreSQL 16.15; 10k users/1M Todos; raw plans/timings; concurrent index migration and rollback evidence | Complete |
 | Git workflow and PR submission | Atomic Conventional Commits and final PR | `<git log/PR>` | In Progress |
-| AI disclosure | `docs/AI_USAGE.md` | Assistance log updated through Tier 4 backend API work | Complete deliverable; candidate attestation remains pending |
-| Tier 4 bonus | Tags, filters, bulk actions and tests | Tag/mapping schema, API, filters, bulk transaction, cache regressions | In Progress — backend complete; frontend Tag/filter/bulk UI not included |
+| AI disclosure | `docs/AI_USAGE.md` | Assistance log updated through Tier 4 frontend work | Complete deliverable; candidate attestation remains pending |
+| Tier 4 bonus | Tags, filters, bulk actions and tests | Tag/mapping schema, API, filters, bulk transaction, cache regressions, and frontend UI | Complete |
 
 ## Verification summary
 
@@ -246,11 +246,11 @@ Copy this section once per finding or link the register row to the corresponding
 | Backend format/lint | `black --check .`; `flake8 app tests integration_tests` | Pass | Black passes for all 33 Python files; Flake8 completes without findings | `2026-09-18` | `QUALITY-001` verified after five documented, scoped `E402` suppressions |
 | Backend dependencies | `docker compose exec -T backend pip check` | Pass | Pass: no broken requirements found | `2026-09-19` | The Passlib compatibility warning was removed by `DEP-002` |
 | Frontend install | `cd frontend && npm ci` | Pass | Pass: 287 packages installed/audited | `2026-09-18` | Command exit 0 |
-| Frontend lint | `cd frontend && npm run lint` | Pass | Pass (exit 0) | `2026-09-18` | ESLint completed without findings |
-| Frontend unit regression | `cd frontend && npm test` | Pass | Pass: 10/10 | `2026-09-19` | Query/session/401/page-size/row-key, password character/byte limits, lazy routes, native Vite config, dialog description, and structured-error regressions |
-| Frontend build | `cd frontend && npm run build` | Pass | Pass without the Vite 500 kB or planned-native-loader warnings; entry JS is 293.01 kB (91.73 kB gzip) | `2026-09-19` | `FE-007`, `FE-010` |
+| Frontend lint | `cd frontend && npm run lint` | Pass | Pass (exit 0) | `2026-09-19` | ESLint completed without findings after Tier 4 frontend work |
+| Frontend unit regression | `cd frontend && npm test` | Pass | Pass: 11/11 | `2026-09-19` | Query/session/401/page-size/row-key, full filter-key dimensions, Tag/date validation, password limits, lazy routes, native Vite config, dialog description, and structured-error regressions |
+| Frontend build | `cd frontend && npm run build` | Pass | Pass without the Vite 500 kB or planned-native-loader warnings; entry JS is 293.00 kB (91.72 kB gzip) | `2026-09-19` | Tier 4 frontend, `FE-007`, `FE-010` |
 | Frontend dependency audit | `cd frontend && npm audit --omit=dev`; `npm audit` | No known vulnerabilities | Pass: 0 production and 0 total vulnerabilities | `2026-09-18` | `DEP-001`; compatible direct/transitive lockfile updates |
-| Playwright | `cd frontend && npm run test:e2e` | Pass | Headless suite passes 4/4 | `2026-09-19` | Deterministic retry-indexed accounts, smoke and structured-error regressions, and both required journeys on Vite 4173 with Docker backend/PostgreSQL/Redis |
+| Playwright | `cd frontend && npm run test:e2e` | Pass | Headless suite passes 5/5 | `2026-09-19` | Deterministic retry-indexed accounts, smoke, structured-error, Tier 4 Tag/filter/bulk, and both required journeys on Vite 4173 with Docker backend/PostgreSQL/Redis |
 | Playwright headed command | `cd frontend && npm run test:e2e:headed -- --list` | List configured tests | Pass: reset removes the 3 remaining fixture users and Playwright lists 3 Chromium tests | `2026-09-18` | Validates the documented headed script without opening a GUI during automated verification |
 | PostgreSQL/Redis smoke | `pg_isready`; `redis-cli ping`; README seed command | Pass | Pass: PostgreSQL accepts connections, Redis returns `PONG`, seed created 100 users and 1,000 todos | `2026-09-18` | Counts verified directly in PostgreSQL |
 | Service HTTP smoke | `curl http://localhost:8000/health`; `curl -I http://localhost:3000` | Pass | Pass: backend reports healthy; frontend returns HTTP 200 | `2026-09-18` | Both app services also report healthy through Compose healthchecks |

@@ -1,8 +1,15 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { queryClient } from "@/lib/queryClient";
-import { DEFAULT_TODO_PAGE_SIZE, todoKeys } from "./queryKeys";
+import type { Tag } from "@/features/tags/types";
+import {
+  DEFAULT_TODO_PAGE_SIZE,
+  normalizeTodoFilters,
+  todoKeys,
+  type TodoFilters,
+} from "./queryKeys";
 
 export interface Todo {
   id: string;
@@ -12,21 +19,24 @@ export interface Todo {
   user_id: string;
   created_at: string;
   updated_at: string;
+  // Optional while browser caches drain during a rolling deployment from the
+  // pre-Tag response contract. New API responses always include this field.
+  tags?: Tag[];
 }
 
-interface TodoListResponse {
+export interface TodoListResponse {
   items: Todo[];
   total: number;
   page: number;
   size: number;
 }
 
-interface CreateTodoRequest {
+export interface CreateTodoRequest {
   title: string;
   description?: string;
 }
 
-interface UpdateTodoRequest {
+export interface UpdateTodoRequest {
   title?: string;
   description?: string;
   completed?: boolean;
@@ -43,16 +53,37 @@ interface DeleteTodoVariables {
   userId: string;
 }
 
+interface BulkStatusVariables {
+  todoIds: string[];
+  completed: boolean;
+  userId: string;
+}
+
 export function useTodos(
   userId: string | undefined,
   page: number = 1,
-  size: number = DEFAULT_TODO_PAGE_SIZE
+  size: number = DEFAULT_TODO_PAGE_SIZE,
+  filters: TodoFilters = {},
 ) {
+  const normalizedFilters = normalizeTodoFilters(filters);
+
   return useQuery({
-    queryKey: todoKeys.list(userId ?? "anonymous", page, size),
+    queryKey: todoKeys.list(userId ?? "anonymous", page, size, normalizedFilters),
     queryFn: async (): Promise<TodoListResponse> => {
       const response = await api.get("/todos", {
-        params: { page, size },
+        params: {
+          page,
+          // `size` remains the documented compatible alias and preserves the
+          // deployed request contract while the API also accepts `page_size`.
+          size,
+          ...(normalizedFilters.keyword && { keyword: normalizedFilters.keyword }),
+          ...(normalizedFilters.status !== "all" && {
+            status: normalizedFilters.status === "completed",
+          }),
+          ...(normalizedFilters.tagId && { tag_id: normalizedFilters.tagId }),
+          ...(normalizedFilters.dateFrom && { date_from: normalizedFilters.dateFrom }),
+          ...(normalizedFilters.dateTo && { date_to: normalizedFilters.dateTo }),
+        },
       });
       return response.data;
     },
@@ -70,8 +101,8 @@ export function useCreateTodo() {
       queryClient.invalidateQueries({ queryKey: todoKeys.user(todo.user_id) });
       toast.success("Todo created successfully!");
     },
-    onError: () => {
-      toast.error("Failed to create todo");
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Failed to create todo"));
     },
   });
 }
@@ -105,11 +136,11 @@ export function useUpdateTodo() {
 
       return { previousTodos };
     },
-    onError: (_error, _variables, context) => {
+    onError: (error, _variables, context) => {
       context?.previousTodos.forEach(([queryKey, todos]) => {
         queryClient.setQueryData(queryKey, todos);
       });
-      toast.error("Failed to update todo");
+      toast.error(getApiErrorMessage(error, "Failed to update todo"));
     },
     onSettled: (_data, _error, { userId }) => {
       queryClient.invalidateQueries({ queryKey: todoKeys.user(userId) });
@@ -126,8 +157,8 @@ export function useDeleteTodo() {
       queryClient.invalidateQueries({ queryKey: todoKeys.user(userId) });
       toast.success("Todo deleted successfully!");
     },
-    onError: () => {
-      toast.error("Failed to delete todo");
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Failed to delete todo"));
     },
   });
 }
@@ -145,4 +176,27 @@ export function useToggleTodo() {
       });
     },
   };
+}
+
+export function useBulkUpdateTodoStatus() {
+  return useMutation({
+    mutationFn: async ({ todoIds, completed }: BulkStatusVariables) => {
+      const response = await api.patch("/todos/bulk-status", {
+        todo_ids: todoIds,
+        completed,
+      });
+      return response.data as { updated_count: number; completed: boolean };
+    },
+    onSuccess: (result, { userId }) => {
+      queryClient.invalidateQueries({ queryKey: todoKeys.user(userId) });
+      toast.success(
+        `${result.updated_count} todo${result.updated_count === 1 ? "" : "s"} marked ${
+          result.completed ? "completed" : "active"
+        }`,
+      );
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Failed to update selected todos"));
+    },
+  });
 }

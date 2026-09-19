@@ -10,7 +10,7 @@ from app.models.todo import Todo
 from app.models.user import User
 
 RESET_CONFIRMATION_ENV = "E2E_ALLOW_RESET"
-E2E_ACCOUNT_ROLES = ("journey1", "journey2-a", "journey2-b")
+E2E_ACCOUNT_ROLES = ("journey1", "journey2-a", "journey2-b", "tier4")
 E2E_RETRY_INDEXES = range(3)
 E2E_EMAILS = tuple(
     f"e2e-{role}-r{retry_index}@example.com"

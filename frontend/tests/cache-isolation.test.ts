@@ -6,17 +6,45 @@ import {
   DEFAULT_TODO_PAGE_SIZE,
   todoKeys,
 } from "../src/features/todos/api/queryKeys.js";
+import { todoFiltersSchema } from "../src/features/todos/schemas/todo.js";
+import { tagSchema } from "../src/features/tags/schemas/tag.js";
 import { shouldClearSessionForUnauthorized } from "../src/lib/authErrorHandling.js";
 import { getApiErrorMessage } from "../src/lib/apiError.js";
 import { clearUserSession } from "../src/lib/sessionCleanup.js";
 import { passwordSchema } from "../src/features/auth/schemas/auth.js";
 
-test("todo list keys are isolated by user and pagination", () => {
+test("todo list keys are isolated by user, pagination, and every filter", () => {
   const firstPage = todoKeys.list("user-a", 1, 20);
 
   assert.notDeepEqual(firstPage, todoKeys.list("user-b", 1, 20));
   assert.notDeepEqual(firstPage, todoKeys.list("user-a", 2, 20));
   assert.notDeepEqual(firstPage, todoKeys.list("user-a", 1, 50));
+
+  const filterInputs = {
+    keyword: "roadmap",
+    status: "active" as const,
+    tagId: "tag-a",
+    dateFrom: "2026-01-01",
+    dateTo: "2026-01-31",
+  };
+  const filtered = todoKeys.list("user-a", 1, 20, filterInputs);
+
+  assert.notDeepEqual(
+    filtered,
+    todoKeys.list("user-a", 1, 20, { ...filterInputs, keyword: "launch" }),
+  );
+  assert.notDeepEqual(
+    filtered,
+    todoKeys.list("user-a", 1, 20, { ...filterInputs, status: "completed" }),
+  );
+  assert.notDeepEqual(
+    filtered,
+    todoKeys.list("user-a", 1, 20, { ...filterInputs, tagId: "tag-b" }),
+  );
+  assert.notDeepEqual(
+    filtered,
+    todoKeys.list("user-a", 1, 20, { ...filterInputs, dateFrom: "2026-02-01" }),
+  );
 });
 
 test("default Todo page size is bounded by the API limit", () => {
@@ -93,6 +121,34 @@ test("password validation matches the backend character and UTF-8 byte limits", 
   assert.equal(passwordSchema.safeParse("😀".repeat(6)).success, true);
   assert.equal(passwordSchema.safeParse("😀".repeat(18)).success, true);
   assert.equal(passwordSchema.safeParse("😀".repeat(19)).success, false);
+});
+
+test("tag and date-range validation mirror backend constraints", () => {
+  assert.equal(tagSchema.safeParse({ name: "  Planning  ", color: "#22c55e" }).success, true);
+  assert.equal(tagSchema.safeParse({ name: "   " }).success, false);
+  assert.equal(tagSchema.safeParse({ name: "x".repeat(51) }).success, false);
+  assert.equal(tagSchema.safeParse({ name: "Tag", color: "x".repeat(21) }).success, false);
+
+  assert.equal(
+    todoFiltersSchema.safeParse({
+      keyword: "roadmap",
+      status: "active",
+      tagId: "tag-a",
+      dateFrom: "2026-01-01",
+      dateTo: "2026-01-31",
+    }).success,
+    true,
+  );
+  assert.equal(
+    todoFiltersSchema.safeParse({
+      keyword: "",
+      status: "all",
+      tagId: "",
+      dateFrom: "2026-02-01",
+      dateTo: "2026-01-31",
+    }).success,
+    false,
+  );
 });
 
 test("clearing a session removes tokens and all cached queries", () => {

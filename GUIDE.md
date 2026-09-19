@@ -72,20 +72,22 @@ for healthy dependencies and run as non-root users. The local `.env` file is
 ignored by Git; never commit it.
 
 Set `CORS_ORIGINS` to a comma-separated allowlist of browser origins (for
-example, `https://app.example.com,https://admin.example.com`). Wildcards are
-rejected because the API accepts credentialed requests. `DB_ECHO` defaults to
-`false`; enable it only briefly for local SQL diagnostics because queries can
-contain personal data.
+example, `https://app.example.com,https://admin.example.com`). The development
+template also includes Playwright's local Vite origin, `http://127.0.0.1:4173`;
+remove it in environments that do not run browser tests. Wildcards are rejected
+because the API accepts credentialed requests. `DB_ECHO` defaults to `false`;
+enable it only briefly for local SQL diagnostics because queries can contain
+personal data.
 
 Todo mutations commit the database before attempting Redis list-cache
 invalidation. If Redis is unavailable at that point, the API preserves the
 successful mutation and logs `todo_cache_invalidation_failed` for alerting;
 previous list entries can remain stale for up to the five-minute cache TTL.
 
-The database also contains the Tier 4 Tag foundation: user-owned `tags` and
-the `todo_tags` mapping table. Tag names are unique case-insensitively per user
-at the database boundary. This schema change does not add Tag, filter, or bulk
-action endpoints; run `alembic upgrade head` before implementing those APIs.
+Tier 4 is available end to end: user-owned `tags`, the `todo_tags` mapping,
+owner-scoped Tag CRUD and Todo filters, and atomic bulk status updates. Tag
+names are unique case-insensitively per user at the database boundary. Run
+`alembic upgrade head` before using the Tag APIs or the frontend controls.
 
 By default the seed command creates 100 users and 1,000 TODOs so the assessment is quick to set up. To test performance with a larger dataset, pass seed variables explicitly:
 
@@ -173,6 +175,16 @@ Tag and Todo access returns `404`; Tag, mapping, and bulk mutations invalidate
 the affected user's Todo-list cache version. Credentialed CORS permits the
 `PATCH` request required by the bulk-status endpoint for configured origins.
 
+### Frontend Tag and Todo controls
+
+The dashboard has an explicit filter bar for keyword, status, Tag, and an
+inclusive date range; **Clear filters** restores the unfiltered list. Todo rows
+render their attached Tags. **Manage tags** opens private Tag create, rename,
+color, and delete controls. Select one or more visible Todos to mark the group
+completed or active. React Query keys include the signed-in user, page, size,
+keyword, status, Tag, and both dates; Todo and Tag mutations invalidate all
+affected user-scoped lists.
+
 ## Project Structure
 
 ```
@@ -236,10 +248,11 @@ npm run test:e2e:headed   # headed browser
 ```
 
 Both run commands first execute `npm run test:e2e:prepare`. The prepare step
-deletes only the allowlisted `e2e-journey1-r{0..2}@example.com` and
-`e2e-journey2-{a,b}-r{0..2}@example.com` users and their Todos, then the tests
-recreate deterministic data using password `E2eTodo@123`. Do not run concurrent
-suites against the same backend because they share this fixture namespace.
+deletes only the allowlisted `e2e-journey1-r{0..2}@example.com`,
+`e2e-journey2-{a,b}-r{0..2}@example.com`, and
+`e2e-tier4-r{0..2}@example.com` users and their Todos, then the tests recreate
+deterministic data using password `E2eTodo@123`. Do not run concurrent suites
+against the same backend because they share this fixture namespace.
 
 Playwright starts a dedicated Vite server at `http://127.0.0.1:4173`
 automatically. Set
@@ -247,8 +260,9 @@ automatically. Set
 frontend. The complete authentication/Todo and cross-user Tier 2B journeys
 require the backend and disposable test accounts. Journey 1 covers the complete
 authentication/Todo lifecycle; Journey 2 covers cross-user UI and API isolation.
-The suite also includes a frontend-only smoke check and a regression for a
-FastAPI-style structured validation error, for four Chromium tests in total.
+The suite also includes a frontend-only smoke check, structured-validation
+error regression, and a Tier 4 Tag/filter/bulk workflow, for five Chromium
+tests in total.
 
 ### API behavior notes
 

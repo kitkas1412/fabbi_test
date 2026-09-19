@@ -8,7 +8,7 @@
 | Author | Nguyen Dinh Duc |
 | Test window | `2026-09-18` – `2026-09-19`; automated remediation and required E2E journeys complete; listed exploratory manual cases remain Not Run |
 | Environment | macOS 26.6.2; Docker 29.5.2 / Compose 5.1.4; Compose application stack |
-| Overall result | Backend/frontend regressions, four Playwright tests, and Tier 3B infrastructure checks pass; unexecuted exploratory cases are explicitly retained below |
+| Overall result | Backend/frontend regressions, five Playwright tests, and Tier 3B infrastructure checks pass; unexecuted exploratory cases are explicitly retained below |
 
 ## 1. Objective
 
@@ -36,8 +36,8 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 
 | Component | Version/configuration | Status |
 |---|---|---|
-| Browser | Playwright 1.63.0 / Chromium 153.0.8010.12 | Suite 4/4 passes; both required Tier 2B journeys complete |
-| Frontend | Host Node 24 / npm; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 10/10, Playwright 4/4, lint, and production build pass |
+| Browser | Playwright 1.63.0 / Chromium 153.0.8010.12 | Suite 5/5 passes; both required Tier 2B journeys and Tier 4 UI journey complete |
+| Frontend | Host Node 24 / npm; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 11/11, Playwright 5/5, lint, and production build pass |
 | Backend | Non-root container Python 3.12; `http://localhost:8000` | Fast regression suite 40/40 plus PostgreSQL/Redis integration 2/2; Black and unfiltered Flake8 pass; backend health-gated cold start passes |
 | PostgreSQL | Compose image `postgres:16-alpine` | Running; migration at head; 100 users and 1,000 todos seeded |
 | Redis | Compose image `redis:7-alpine` | Healthy with password authentication; unauthenticated commands are rejected; Journey 1/2 real-cache paths pass |
@@ -70,7 +70,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 - [x] Frontend unit regressions were executed: 10/10 passed.
 - [x] Frontend lint and production build pass without the bundle-size (`FE-007`) or planned native config-loader (`FE-010`) warnings.
 - [x] Frontend production and full dependency audits report 0 vulnerabilities.
-- [x] Playwright Chromium suite passes 4/4, including both required Tier 2B journeys.
+- [x] Playwright Chromium suite passes 5/5, including both required Tier 2B journeys and the Tier 4 UI journey.
 - [x] No production credentials or data are used in assessment verification; tracked values are development placeholders.
 
 ## 5. Exit criteria
@@ -111,7 +111,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 | FE-01 | Session | Logout clears user-scoped client data | User A has loaded Todos | Logout; log in as B | No A data flashes or remains in cache/UI | High / Critical | Unit regression and Journey 1 logout pass; Journey 2 confirms separate-session isolation, while same-context A-to-B switching remains unit-only | Partial (Unit + E2E) |
 | FE-02 | Error UX | Invalid login shows error without hard reload | Login page open | Submit wrong credentials | Stable error is shown; form remains usable | Medium / Major | Node regression confirms the global 401 handler leaves `/auth/login` responses for the form, while it still clears sessions for protected requests | Pass (Unit) |
 | FE-03 | Optimistic UI | Failed update rolls back | Simulate update failure | Toggle/edit Todo | UI restores previous value and reports failure | Medium / Major | `<actual>` | Not Run |
-| FE-04 | Query isolation | Todo query identity includes account and pagination | Query key factory available | Compare keys for different users, pages, and sizes | Every response-changing input produces a distinct key | High / Critical | Node unit regression confirms distinct keys for user, page, and size | Pass (Unit) |
+| FE-04 | Query isolation | Todo query identity includes account, pagination, and filters | Query key factory available | Compare keys for different users, pages, sizes, keyword, status, Tag, and dates | Every response-changing input produces a distinct key | High / Critical | Node unit regression confirms distinct keys for every API list input | Pass (Unit) |
 | FE-05 | Pagination | Default Todo request is bounded | Authenticated user with the default Todo page | Load Todos without a page-size override | Request size matches the documented bounded default | Medium / Major | Node regression confirms `DEFAULT_TODO_PAGE_SIZE` is 100, matching the backend maximum | Pass (Unit) |
 | FE-06 | React rendering | Todo rows have stable React keys | A Todo list with reordered or removed entries | Render Todo rows | Every row key is the stable Todo ID, not its array position | Low / Minor | Node regression verifies `TodoList` uses `todo.id` and rejects `index` keys | Pass (Unit) |
 | INFRA-01 | Startup | Clean Docker cold start is dependable | Services stopped; environment configured | Run `docker compose up -d --build --wait` | Dependencies become healthy and backend starts without race failure | High / Major | Health order observed: PostgreSQL/Redis → backend → frontend; all services healthy without restart | Pass (Integration) |
@@ -120,6 +120,8 @@ Do not record real passwords or tokens in this document. Use disposable local te
 | TAG-02 | Tier 4 | Cross-user tag attach is rejected | A owns Todo; B owns Tag | Attempt cross-user attachment and detach | Requests return 404; no foreign relation is created or removed | High / Critical | `test_todo_tag_mapping_is_owner_scoped_and_invalidates_cached_lists` | Pass (Automated API) |
 | FILTER-01 | Tier 4 | Combined filters return correct stable page | Tagged Todos across dates/statuses | Apply tag, status, keyword, date, and page-size inputs | Only matching Todos and correct totals are returned; foreign tag filter is 404 | Medium / Major | `test_todo_filters_use_all_inputs_and_require_an_owned_tag` | Pass (Automated API) |
 | BULK-01 | Tier 4 | Bulk status update is owner-scoped and atomic | Payload includes owned and foreign IDs | Submit bulk update | Mixed ownership returns 404 without changing owned Todos; all-owned request updates once | High / Critical | `test_bulk_status_update_is_atomic_owner_scoped_and_invalidates_cache` | Pass (Automated API) |
+| FE-TAG-01 | Tier 4 frontend | Tag controls validate and refresh UI state | Authenticated dashboard; Tag API available | Create, rename, and delete a Tag; inspect Todo filter choices | Blank/over-50 name and over-20 color are rejected locally; successful mutations refresh Tag and Todo queries | Medium / Major | Frontend `tagSchema`, Tag mutation invalidation, and unit regression | Pass (Unit) |
+| FE-FILTER-01 | Tier 4 frontend | Filter and bulk controls preserve query/cache boundaries | Authenticated dashboard with Todos and Tags | Apply/clear filters; select visible Todos; mark completed or active | Request has every selected filter; clear restores defaults; bulk mutation refreshes user-scoped Todo lists | High / Major | Query-key unit regression, React Query hooks, and Playwright baseline journeys | Pass (Unit + E2E) |
 
 Add cases for every new finding or acceptance criterion. Keep test IDs stable across executions.
 
