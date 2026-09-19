@@ -108,9 +108,10 @@ FROM todos
 WHERE user_id = '1bbd9104-7e50-42a9-bc2d-d62886d27cce'::uuid;
 ```
 
-Status/tag filters were not benchmarked because the current API does not
-implement those optional Tier 4 inputs. No hypothetical result is presented as
-application evidence.
+Status and Tag filters were added after this Tier 3C benchmark and were not
+measured in this report. No hypothetical result is presented as application
+evidence; a future benchmark must use the current filter SQL and representative
+Tag selectivity before claiming an index benefit for those paths.
 
 ## 5. Measurement method
 
@@ -260,8 +261,9 @@ throughput, concurrent writes, WAL/replication, and cache state.
   not production hardware.
 - The dataset was generated randomly, but exact counts, selected user, query
   parameters, raw plans, and every sample are retained for this run.
-- Status/tag queries were not measured because they are not implemented in the
-  current application contract.
+- Status/Tag queries were not measured in this Tier 3C run. Capture a new
+  PostgreSQL baseline with representative selectivity before claiming an index
+  benefit for the delivered Tier 4 filters.
 
 ## 13. Reproduction
 

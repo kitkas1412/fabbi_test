@@ -181,10 +181,12 @@ The dashboard has an explicit filter bar for keyword, status, Tag, and an
 inclusive date range; **Clear filters** restores the unfiltered list. Todo rows
 render their attached Tags and include a **Tags** control to attach an available
 Tag or remove an attached one. **Manage tags** opens private Tag create, rename,
-color, and delete controls. Select one or more visible Todos to mark the group
-completed or active. React Query keys include the signed-in user, page, size,
-keyword, status, Tag, and both dates; Todo and Tag mutations invalidate all
-affected user-scoped lists.
+color, and delete controls. The dashboard shows up to 100 Todos per page, with
+Previous/Next controls and a page-range summary; applying or clearing filters
+returns to page 1. Select one or more visible Todos to mark the group completed
+or active. React Query keys include the signed-in user, page, size, keyword,
+status, Tag, and both dates; Todo and Tag mutations invalidate all affected
+user-scoped lists.
 
 ## Project Structure
 
@@ -251,9 +253,10 @@ npm run test:e2e:headed   # headed browser
 Both run commands first execute `npm run test:e2e:prepare`. The prepare step
 deletes only the allowlisted `e2e-journey1-r{0..2}@example.com`,
 `e2e-journey2-{a,b}-r{0..2}@example.com`, and
-`e2e-tier4-r{0..2}@example.com` users and their Todos, then the tests recreate
-deterministic data using password `E2eTodo@123`. Do not run concurrent suites
-against the same backend because they share this fixture namespace.
+`e2e-tier4-r{0..2}@example.com`, and
+`e2e-pagination-r{0..2}@example.com` users and their Todos, then the tests
+recreate deterministic data using password `E2eTodo@123`. Do not run concurrent
+suites against the same backend because they share this fixture namespace.
 
 Playwright starts a dedicated Vite server at `http://127.0.0.1:4173`
 automatically. Set
@@ -262,8 +265,8 @@ frontend. The complete authentication/Todo and cross-user Tier 2B journeys
 require the backend and disposable test accounts. Journey 1 covers the complete
 authentication/Todo lifecycle; Journey 2 covers cross-user UI and API isolation.
 The suite also includes a frontend-only smoke check, structured-validation
-error regression, and a Tier 4 Tag/filter/bulk workflow, for five Chromium
-tests in total.
+error regression, a Tier 4 Tag/filter/bulk workflow, and a 101-Todo pagination
+regression, for six Chromium tests in total.
 
 ### API behavior notes
 

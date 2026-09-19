@@ -2,7 +2,7 @@
 
 ## 1. Mục tiêu
 
-Tài liệu này là kế hoạch và lịch sử quyết định cho assessment của Fabbi Todo App. Các hạng mục bắt buộc đã có implementation và bằng chứng tương ứng; trạng thái hiện hành được theo dõi trong `docs/BUG_REPORT.md` và `docs/TEST_PLAN.md`. Tier 4 vẫn là phần bonus, chưa được yêu cầu triển khai và không được suy diễn là đã hoàn thành. Mục tiêu của kế hoạch là đảm bảo:
+Tài liệu này là kế hoạch và lịch sử quyết định cho assessment của Fabbi Todo App. Các hạng mục bắt buộc đã có implementation và bằng chứng tương ứng; trạng thái hiện hành được theo dõi trong `docs/BUG_REPORT.md` và `docs/TEST_PLAN.md`. Tier 4 là phần bonus đã được yêu cầu và triển khai end to end; Todo Sharing vẫn chỉ là đặc tả. Mục tiêu của kế hoạch là đảm bảo:
 
 - Không có truy cập hoặc rò rỉ dữ liệu chéo người dùng.
 - Token được xác thực, xoay vòng và thu hồi đúng.
@@ -12,7 +12,10 @@ Tài liệu này là kế hoạch và lịch sử quyết định cho assessment
 - Thay đổi có thể review, rollout và rollback độc lập.
 - Mỗi yêu cầu trong README có artefact và bằng chứng kiểm chứng tương ứng.
 
-Kế hoạch có mô tả Tier 4 để tham khảo nếu được yêu cầu sau này. Todo Sharing vẫn chỉ được viết đặc tả production-grade theo đúng README; không triển khai code Todo Sharing vì đó không phải yêu cầu của Task 3A.
+Tier 4 đã được hoàn thành theo vertical slice gồm Tags, filtering, bulk actions,
+cache isolation, frontend controls và regression tests. Todo Sharing vẫn chỉ
+được viết đặc tả production-grade theo đúng README; không triển khai code Todo
+Sharing vì đó không phải yêu cầu của Task 3A.
 
 ## 2. Nguyên tắc thực hiện
 
@@ -369,9 +372,11 @@ Thay đổi validation có thể làm token cũ mất hiệu lực. Ghi rõ đâ
 - Git workflow/submission evidence đã được cập nhật liên tục.
 - Toàn bộ lệnh validation bắt buộc chạy xanh hoặc có blocker khách quan được mô tả; blocker không được dùng để tuyên bố đã đạt điểm.
 
-## 14. Giai đoạn 10 — Tier 4 để đạt đủ 15 điểm bonus
+## 14. Giai đoạn 10 — Tier 4 để đạt đủ 15 điểm bonus (đã hoàn thành)
 
-Chỉ bắt đầu sau khi cổng 100 điểm bắt buộc đã xanh. Tier 4 phải được làm như một vertical slice hoàn chỉnh, không chỉ dựng UI hoặc schema rời rạc.
+Tier 4 đã được thực hiện sau các gate bắt buộc như một vertical slice hoàn
+chỉnh, không chỉ dựng UI hoặc schema rời rạc. Các mục bên dưới là checklist đã
+được đáp ứng và là chuẩn cho các thay đổi Tier 4 tiếp theo.
 
 ### Database và migration
 
@@ -517,8 +522,9 @@ Một hạng mục chỉ được coi là hoàn tất khi:
 
 Assessment bắt buộc được coi là hoàn tất khi đạt toàn bộ gate tương ứng 100
 điểm và final score audit không còn ô trống hoặc bằng chứng chưa kiểm chứng.
-Tier 4 chỉ được thêm vào điều kiện hoàn tất khi có yêu cầu thực hiện phần bonus;
-khi đó cần hoàn thành toàn bộ 15 điểm bonus cùng các gate bắt buộc.
+Tier 4 đã được yêu cầu và được đưa vào điều kiện hoàn tất: Tags, filtering và
+bulk actions có implementation, migration, cache invalidation và test end to
+end tương ứng.
 
 ## 20. Kết quả mong đợi sau cùng
 
@@ -531,8 +537,7 @@ Sau khi hoàn thành theo thứ tự trên, dự án phải đạt được các
 - Database bảo vệ uniqueness/integrity kể cả dưới concurrency.
 - Query có thứ tự ổn định, index được chứng minh bằng benchmark.
 - Container khởi động ổn định, chạy với quyền tối thiểu và không chứa secret mặc định.
-- Nếu Tier 4 được yêu cầu: tags, filtering và bulk actions hoạt động end to end
-  theo toàn bộ rule Tier 4.
+- Tags, filtering và bulk actions hoạt động end to end theo toàn bộ rule Tier 4.
 - Bộ test và tài liệu đủ để ngăn các lỗi quan trọng tái xuất hiện.
-- Submission có bằng chứng truy vết cho toàn bộ 100 điểm bắt buộc và, nếu được
-  yêu cầu, 15 điểm bonus.
+- Submission có bằng chứng truy vết cho toàn bộ 100 điểm bắt buộc và 15 điểm
+  Tier 4 bonus đã triển khai.

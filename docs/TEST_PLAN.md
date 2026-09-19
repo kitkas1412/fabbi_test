@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Scope/version | Current worktree based on `e53e671` |
+| Scope/version | Current worktree based on `b89416b` |
 | Author | Nguyen Dinh Duc |
 | Test window | `2026-09-18` – `2026-09-19`; automated remediation, required E2E journeys, and JWT endpoint matrix complete |
 | Environment | macOS 26.6.2; Docker 29.5.2 / Compose 5.1.4; Compose application stack |
@@ -38,12 +38,12 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 |---|---|---|
 | Browser | Playwright 1.63.0 / Chromium 153.0.8010.12 | Suite 6/6 passes; both required Tier 2B journeys, Tier 4 UI journey, and dashboard pagination regression complete |
 | Frontend | Host Node 24 / npm; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 15/15, Playwright 6/6, lint, and production build pass |
-| Backend | Non-root container Python 3.12; `http://localhost:8000` | Fast regression suite 40/40 plus PostgreSQL/Redis integration 2/2; Black and unfiltered Flake8 pass; backend health-gated cold start passes |
+| Backend | Non-root container Python 3.12; `http://localhost:8000` | Fast regression suite 49/49 plus PostgreSQL/Redis integration 3/3; Black and unfiltered Flake8 pass; backend health-gated cold start passes |
 | PostgreSQL | Compose image `postgres:16-alpine` | Running; migration at head; 100 users and 1,000 todos seeded |
 | Redis | Compose image `redis:7-alpine` | Healthy with password authentication; unauthenticated commands are rejected; Journey 1/2 real-cache paths pass |
 | Docker | Docker 29.5.2 / Compose 5.1.4 | Four services healthy; readiness order, non-root app users, and internal-only data ports verified |
 | OS | macOS 26.6.2 (Build 25G83) | Ready |
-| Commit | `85346dc` | Automated remediation, browser journeys, infrastructure, database performance, and deployed-frontend page-size verification executed |
+| Commit | `b89416b` | Automated remediation, Tier 4, browser journeys, dashboard pagination, and JWT endpoint-matrix verification executed |
 
 Required test identities:
 
@@ -61,11 +61,11 @@ Do not record real passwords or tokens in this document. Use disposable local te
 
 - [x] Target commit is identified.
 - [x] Required services become healthy on a cold start without a manual restart.
-- [x] Database migrations completed successfully at `c3d5e7f9a1b2 (head)`.
+- [x] Database migrations completed successfully at `e5f7a9b1c2d3 (head)`.
 - [x] Test data resets deterministically through an exact email allowlist before headless/headed/UI runs.
-- [x] Backend automated tests were executed after remediation: 40/40 passed.
+- [x] Backend automated tests were executed after remediation: 49/49 passed.
 - [x] The fast suite has no Pydantic class-`Config` deprecation warning.
-- [x] PostgreSQL/Redis integration tests were executed after remediation: 2/2 passed.
+- [x] PostgreSQL/Redis integration tests were executed after remediation: 3/3 passed.
 - [x] The fast suite has no pytest-asyncio custom-event-loop deprecation warning.
 - [x] Backend Black and unfiltered Flake8 gates pass on the remediated tree.
 - [x] Frontend unit regressions were executed: 15/15 passed.
@@ -112,7 +112,7 @@ endpoint-matrix evidence.
 | TODO-06 | Update | Partial title update preserves description | Todo has title and description | Update only title, then reload | Description is unchanged | High / Major | API regression confirms response and subsequent GET preserve description | Pass (Automated) |
 | TODO-07 | Pagination | Pagination is bounded and deterministic | Multiple Todos, including equal timestamps | Request sequential pages and `size=101` | Stable order, no duplicates/omissions, oversized request rejected | Medium / Major | API regression rejects `size=101`; Playwright creates 101 Todos and confirms the 101st item is available on page 2 | Pass (Automated + E2E) |
 | CACHE-01 | Isolation | User cache entries are isolated | A and B own different Todos | A loads list, then B loads list | B sees only B's data | High / Critical | Compose integration verifies distinct user-key namespaces in authenticated Redis; Journey 2 confirms B's real-Redis list response and UI exclude A's Todo | Pass (Integration) |
-| CACHE-02 | Query scope | Pagination/filter changes cache identity | Cached list exists | Change page, size, filter, sort | Correct query-specific result is returned | High / Major | Page/size variants return distinct pages; filters/sort are not implemented in current API | Pass for current query contract (Mock) |
+| CACHE-02 | Query scope | Pagination/filter changes cache identity | Cached list exists | Change page, size, filter, sort | Correct query-specific result is returned | High / Major | Query-key and backend regressions cover page/size plus keyword, status, Tag, and date inputs; Redis keys scope every list input | Pass (Automated + Integration) |
 | CACHE-03 | Invalidation | Create/update/delete invalidates stale list | User has cached list | Perform each mutation, reload list | Latest committed data is returned immediately | High / Major | Compose integration confirms an update increments the real Redis version and returns fresh PostgreSQL state; Journey 1 covers full mutation lifecycle | Pass (Integration) |
 | CACHE-04 | Transaction | Cache invalidation is commit-coordinated | Cache version and transaction boundary available | Force commit failure, then exercise a successful mutation boundary | Failed transaction rolls back without Redis change; successful path commits before Redis `incr` | High / Major | `test_failed_todo_commit_does_not_invalidate_cache` and `test_todo_cache_invalidation_follows_successful_commit` cover both paths | Pass (Automated) |
 | CACHE-05 | Availability | Redis invalidation failure does not fail a committed mutation | Redis mock raises `RedisError` from `incr` | Create a Todo and reload its list | Create returns 201, data is DB-visible, and `todo_cache_invalidation_failed` is logged | High / Major | `test_create_todo_succeeds_when_cache_invalidation_is_unavailable` | Pass (Automated) |
