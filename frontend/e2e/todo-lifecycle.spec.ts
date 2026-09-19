@@ -32,12 +32,22 @@ test("registers, logs in, and completes the Todo lifecycle", async ({
       response.url().endsWith("/api/v1/auth/register") &&
       response.request().method() === "POST",
   );
+  const initialTodoListResponsePromise = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/v1/todos?") &&
+      response.request().method() === "GET",
+  );
   await page.getByRole("button", { name: "Create Account" }).click();
   expect((await registerResponsePromise).status()).toBe(201);
 
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { name: "Todo App" })).toBeVisible();
   await expect(page.getByText(account.email)).toBeVisible();
+  const initialTodoListResponse = await initialTodoListResponsePromise;
+  expect(initialTodoListResponse.status()).toBe(200);
+  expect(new URL(initialTodoListResponse.url()).searchParams.get("size")).toBe(
+    "100",
+  );
 
   await page.getByRole("button", { name: "Logout" }).click();
   await expect(page).toHaveURL(/\/login$/);

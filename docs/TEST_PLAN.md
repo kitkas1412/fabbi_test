@@ -151,6 +151,7 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | RUN-025 | `2026-09-19` | `b4242a0` | Host Node 24 / npm; Docker backend/PostgreSQL/Redis; Chromium | Nguyen Dinh Duc with Codex assistance | Todo-dialog accessibility description | **Pass**: unit tests 7/7, ESLint, production build, and Playwright 3/3 pass | Create and edit Todo dialogs expose a contextual description to screen readers. Playwright exercised both dialogs and emitted no Radix missing-description warning; FE-010 config-loader warning remained tracked. |
 | RUN-026 | `2026-09-19` | `60c4a67` | Host Node 24 / npm; Docker backend/PostgreSQL/Redis; Chromium | Nguyen Dinh Duc with Codex assistance | Structured API error rendering | **Pass**: unit tests 8/8, ESLint, production build, and Playwright 4/4 pass | A FastAPI-style 422 `detail` array renders its validation message as toast text without a browser `pageerror`; unexpected error payloads use the form fallback rather than being rendered as React children. FE-010 config-loader warning remained tracked. |
 | RUN-027 | `2026-09-19` | `259ab7f` | Host Node 24 / npm; Docker backend/PostgreSQL/Redis; Chromium | Nguyen Dinh Duc with Codex assistance | Vite native config-loader compatibility | **Pass**: unit tests 9/9, ESLint, production build, and Playwright 4/4 pass | Alias resolution uses `import.meta.dirname`; neither the planned-native-loader nor 500 kB chunk warning is emitted in build or the Playwright Vite server. |
+| RUN-028 | `2026-09-19` | FE-011 current worktree | Rebuilt Docker frontend at `http://localhost:3000`; Chromium | Nguyen Dinh Duc with Codex assistance | Stale frontend image remediation | **Pass**: frontend unit 9/9, ESLint, production build, and Docker-served Journey 1 1/1 pass | The browser's initial Todo-list request is asserted as `200` with `size=100`; the stale image previously sent `size=10000` and received `422`. |
 
 ## 8. Defect log
 
@@ -166,6 +167,7 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | TODO-05/06 | TODO-002/003 | Partial updates mishandled false and omitted fields | High | Automated retest passed |
 | CACHE-01/02/03 | CACHE-001/002 | Cache leaked across users/queries and served stale mutations | Critical / High | Stateful-mock retest, Compose PostgreSQL/Redis integration, and real-Redis Journey 1/2 paths passed |
 | FE-01/04 | FE-001/002 | Client query identity and logout cleanup were not account-safe | High | Unit retest, Journey 1 logout, and Journey 2 isolated-session checks passed; same-context account switch remains unit-only |
+| TODO-01 | FE-011 | Stale Docker frontend bundle requested `size=10000`, beyond backend limit | High | Rebuilt/recreated frontend image; Docker-served Journey 1 asserts the initial list request uses `size=100` and returns 200 |
 
 ## 9. Known limitations and residual risk
 
