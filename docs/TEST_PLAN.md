@@ -4,11 +4,11 @@
 
 | Field | Value |
 |---|---|
-| Scope/version | HEAD `85346dc` |
+| Scope/version | Current worktree based on `e53e671` |
 | Author | Nguyen Dinh Duc |
-| Test window | `2026-09-18` – `2026-09-19`; automated remediation and required E2E journeys complete; listed exploratory manual cases remain Not Run |
+| Test window | `2026-09-18` – `2026-09-19`; automated remediation, required E2E journeys, and JWT endpoint matrix complete |
 | Environment | macOS 26.6.2; Docker 29.5.2 / Compose 5.1.4; Compose application stack |
-| Overall result | Backend/frontend regressions, six Playwright tests, and Tier 3B infrastructure checks pass; unexecuted exploratory cases are explicitly retained below |
+| Overall result | Backend/frontend regressions, six Playwright tests, Tier 3B infrastructure checks, and the JWT endpoint matrix pass |
 
 ## 1. Objective
 
@@ -79,19 +79,26 @@ Do not record real passwords or tokens in this document. Use disposable local te
 - [ ] All Critical and High cases pass.
 - [ ] No cross-user data is visible in API, UI, logs, or caches.
 - [ ] Failed cases have linked defects in `docs/BUG_REPORT.md`.
-- [ ] Actual Result, Status, executor, and date are filled for every executed case.
-- [ ] Retest and regression results are recorded after fixes.
+- [x] Actual Result and Status are filled for every executed case; executor and date are recorded in the execution log.
+- [x] Retest and regression results are recorded after fixes.
 
 ## 6. Test case matrix
+
+### Execution provenance
+
+The executor and date for each automated, E2E, and integration evidence set are
+recorded by Run ID in section 7. All current-worktree runs in this plan were
+executed by Nguyen Dinh Duc with Codex assistance; RUN-034 is the final JWT
+endpoint-matrix evidence.
 
 | ID | Area | Scenario | Preconditions | Steps | Expected result | Priority / Severity | Actual result | Status |
 |---|---|---|---|---|---|---|---|---|
 | AUTH-01 | Registration | Register a new valid user | Email is unused | Submit valid registration form | User is created and valid tokens/session are returned | High / Major | Journey 1 receives 201, reaches the dashboard, and displays the registered email | Pass (E2E) |
 | AUTH-02 | Registration | Register duplicate email concurrently | Email is unused; two clients ready | Submit two registrations at the same time | Exactly one user is created; the other request gets a stable conflict response | High / Critical | Database regression proves the unique constraint rejects duplicate inserts; route catches the resulting `IntegrityError` as a stable 400 | Pass (Automated) |
 | AUTH-03 | Login | Invalid email and invalid password do not enumerate users | One known user | Try unknown email, then known email with wrong password | Both produce the same public status/message | High / Security | `test_login_failure_does_not_reveal_whether_email_exists` confirms identical 401 response bodies | Pass (Automated) |
-| AUTH-04 | JWT | Expired access token is rejected | Expired token available | Call `/auth/me` and `/todos` | Both return 401 without protected data | High / Critical | Automated regression confirms `/auth/me` returns 401; `/todos` manual check remains | Partial (Automated) |
-| AUTH-05 | JWT | Tampered token is rejected | Valid token available | Modify payload/signature and call protected API | Request returns 401 | High / Critical | `<actual>` | Not Run |
-| AUTH-06 | JWT | Refresh token cannot act as access token | Valid refresh token | Call protected Todo endpoint with refresh token | Request returns 401 | High / Critical | Automated regression confirms access-only `/auth/me` rejects the refresh token; Todo endpoint manual check remains | Partial (Automated) |
+| AUTH-04 | JWT | Expired access token is rejected | Expired token available | Call `/auth/me` and `/todos` | Both return 401 without protected data | High / Critical | `test_expired_access_token_is_rejected` returns 401 from both protected endpoints | Pass (Automated) |
+| AUTH-05 | JWT | Tampered token is rejected | Valid token available | Modify payload/signature and call protected API | Request returns 401 | High / Critical | `test_tampered_access_token_is_rejected` alters the signature and receives 401 from both `/auth/me` and `/todos` | Pass (Automated) |
+| AUTH-06 | JWT | Refresh token cannot act as access token | Valid refresh token | Call protected Todo endpoint with refresh token | Request returns 401 | High / Critical | `test_refresh_token_cannot_authenticate_access_endpoint` returns 401 from both `/auth/me` and `/todos` | Pass (Automated) |
 | AUTH-07 | Refresh | Refresh token rotates once | Valid refresh token | Refresh, then reuse old token | New pair is issued; old refresh token is rejected | High / Critical | `test_refresh_token_rotation_rejects_replay` verifies the old token returns 401 after rotation | Pass (Automated) |
 | AUTH-08 | Logout | Logout revokes the session | Logged-in user | Logout, then try `/auth/me` and refresh | Access and refresh token are rejected | High / Critical | `test_logout_revokes_access_and_refresh_session` verifies both requests return 401 after logout | Pass (Automated) |
 | AUTH-09 | Login | Registered user can log in with valid credentials | Journey 1 account exists and is logged out | Submit the registered email/password | Login returns 200 and the dashboard displays the account | High / Major | Journey 1 logs out after registration, logs back in, and reaches the authenticated dashboard | Pass (E2E) |
@@ -103,7 +110,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 | TODO-04 | Authorization | User B cannot delete User A's Todo | Same as above | B deletes X | 404; Todo still exists for A | High / Critical | API regression and Journey 2 confirm DELETE returns 404; owner can still retrieve and view X | Pass (Automated + E2E) |
 | TODO-05 | Update | Toggle completed from true to false | Todo is completed | Submit `completed=false`, reload Todo | Persisted value is false | High / Major | API regression confirms response and subsequent GET persist `false` | Pass (Automated) |
 | TODO-06 | Update | Partial title update preserves description | Todo has title and description | Update only title, then reload | Description is unchanged | High / Major | API regression confirms response and subsequent GET preserve description | Pass (Automated) |
-| TODO-07 | Pagination | Pagination is bounded and deterministic | Multiple Todos, including equal timestamps | Request sequential pages and `size=101` | Stable order, no duplicates/omissions, oversized request rejected | Medium / Major | Automated `test_todo_list_rejects_page_size_above_maximum` returns 422; multi-page manual check remains | Partial (Automated) |
+| TODO-07 | Pagination | Pagination is bounded and deterministic | Multiple Todos, including equal timestamps | Request sequential pages and `size=101` | Stable order, no duplicates/omissions, oversized request rejected | Medium / Major | API regression rejects `size=101`; Playwright creates 101 Todos and confirms the 101st item is available on page 2 | Pass (Automated + E2E) |
 | CACHE-01 | Isolation | User cache entries are isolated | A and B own different Todos | A loads list, then B loads list | B sees only B's data | High / Critical | Compose integration verifies distinct user-key namespaces in authenticated Redis; Journey 2 confirms B's real-Redis list response and UI exclude A's Todo | Pass (Integration) |
 | CACHE-02 | Query scope | Pagination/filter changes cache identity | Cached list exists | Change page, size, filter, sort | Correct query-specific result is returned | High / Major | Page/size variants return distinct pages; filters/sort are not implemented in current API | Pass for current query contract (Mock) |
 | CACHE-03 | Invalidation | Create/update/delete invalidates stale list | User has cached list | Perform each mutation, reload list | Latest committed data is returned immediately | High / Major | Compose integration confirms an update increments the real Redis version and returns fresh PostgreSQL state; Journey 1 covers full mutation lifecycle | Pass (Integration) |
@@ -163,6 +170,7 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | RUN-031 | `2026-09-19` | CACHE-004 current worktree | Fresh backend Docker image | Nguyen Dinh Duc with Codex assistance | Redis-outage resilience for Todo mutations | **Pass**: backend pytest 41/41, Black, and Flake8 pass | A Redis `incr` failure after commit logs `todo_cache_invalidation_failed`; Todo creation still returns 201 and is DB-visible. |
 | RUN-032 | `2026-09-19` | Tier 4 Tag DB current worktree | Fresh backend Docker image; disposable PostgreSQL 16 | Nguyen Dinh Duc with Codex assistance | Tag schema, indexes, and migration safety | **Pass**: backend pytest 44/44, Black, and Flake8; PostgreSQL upgrade → downgrade → re-upgrade passes | Case-insensitive per-user uniqueness, duplicate mapping rejection, and index metadata are covered. PostgreSQL exposes all expected Tag/mapping/filter indexes. |
 | RUN-033 | `2026-09-19` | Tier 4 Tag API current worktree | Fresh backend Docker image; disposable PostgreSQL 16 and Redis 7 | Nguyen Dinh Duc with Codex assistance | Tag CRUD, mapping, filters, bulk transaction, and cache versioning | **Pass**: backend pytest 48/48; PostgreSQL/Redis integration 3/3 | API tests cover owner boundaries, all filter inputs, compatibility `page_size`, atomic bulk denial/success, and cache invalidation. Real Redis version increments after Tag/mapping/bulk mutations. |
+| RUN-034 | `2026-09-19` | JWT matrix current worktree | Fresh backend Docker image / Python 3.12.14 | Nguyen Dinh Duc with Codex assistance | Expired, tampered, and refresh-token JWT rejection on `/auth/me` and `/todos` | **Pass**: pytest 49/49, Black, and Flake8 | Tampered-signature regression plus expanded expired/refresh regressions return 401 from both protected endpoints. |
 
 ## 8. Defect log
 
@@ -172,8 +180,9 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | INFRA-02 | INFRA-002 | Development credentials are embedded in tracked Compose configuration | High | Passed after removing tracked `.env` files and requiring ignored environment config |
 | INFRA-02 | INFRA-003 | PostgreSQL and unauthenticated Redis are published to the host | High | Passed after removing host ports and enabling Redis authentication |
 | INFRA-02 | INFRA-004 | Backend and frontend containers run as root | Medium | Passed with non-root `app`/`node` users and scoped build contexts |
-| AUTH-04 | AUTH-001 | Expired access tokens were accepted | Critical | Automated retest passed for `/auth/me`; manual endpoint matrix pending |
-| AUTH-06 | AUTH-002 | Refresh tokens could access protected endpoints | Critical | Automated retest passed for `/auth/me`; manual endpoint matrix pending |
+| AUTH-04 | AUTH-001 | Expired access tokens were accepted | Critical | Automated endpoint-matrix retest passed for `/auth/me` and `/todos` |
+| AUTH-05 | AUTH-005 | A modified JWT signature must not authenticate protected routes | Critical | Automated endpoint-matrix regression passed for `/auth/me` and `/todos` |
+| AUTH-06 | AUTH-002 | Refresh tokens could access protected endpoints | Critical | Automated endpoint-matrix retest passed for `/auth/me` and `/todos` |
 | TODO-02/03/04 | TODO-001 | Todo item operations were not owner-scoped | Critical | Automated retest passed |
 | TODO-05/06 | TODO-002/003 | Partial updates mishandled false and omitted fields | High | Automated retest passed |
 | CACHE-01/02/03 | CACHE-001/002 | Cache leaked across users/queries and served stale mutations | Critical / High | Stateful-mock retest, Compose PostgreSQL/Redis integration, and real-Redis Journey 1/2 paths passed |
@@ -193,5 +202,6 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 
 | Role | Name | Decision | Date | Notes |
 |---|---|---|---|---|
-| Author | Nguyen Dinh Duc | Pending | `2026-09-18` | Automated remediation, both E2E journeys, and dedicated PostgreSQL/Redis integration execution recorded; manual execution remains pending |
-| Reviewer | `<name>` | Pending | `<date>` | — |
+| Execution owner | Nguyen Dinh Duc with Codex assistance | Completed | `2026-09-19` | Evidence is recorded in RUN-001–RUN-034; the final JWT matrix is RUN-034. |
+| Author | Nguyen Dinh Duc | Test evidence acknowledged | `2026-09-19` | The plan records automated, E2E, integration, and JWT endpoint-matrix results; this is not a production release approval. |
+| Independent reviewer | Not assigned | Not applicable | — | No external reviewer was designated for this assessment; no independent approval is claimed. |

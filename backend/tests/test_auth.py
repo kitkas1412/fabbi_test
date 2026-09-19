@@ -270,8 +270,33 @@ async def test_expired_access_token_is_rejected(client: AsyncClient):
         "/api/v1/auth/me",
         headers={"Authorization": f"Bearer {expired_token}"},
     )
+    todos_response = await client.get(
+        "/api/v1/todos",
+        headers={"Authorization": f"Bearer {expired_token}"},
+    )
 
     assert response.status_code == 401
+    assert todos_response.status_code == 401
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_tampered_access_token_is_rejected(client: AsyncClient):
+    """AUTH-005: a modified JWT signature cannot authenticate protected routes."""
+    registration = await client.post(
+        "/api/v1/auth/register",
+        json={"email": "tampered-token@example.com", "password": "password123"},
+    )
+    valid_token = registration.json()["access_token"]
+    header, payload, signature = valid_token.split(".")
+    replacement = "A" if signature[0] != "A" else "B"
+    tampered_token = ".".join((header, payload, replacement + signature[1:]))
+    headers = {"Authorization": f"Bearer {tampered_token}"}
+
+    me_response = await client.get("/api/v1/auth/me", headers=headers)
+    todos_response = await client.get("/api/v1/todos", headers=headers)
+
+    assert me_response.status_code == 401
+    assert todos_response.status_code == 401
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -287,5 +312,10 @@ async def test_refresh_token_cannot_authenticate_access_endpoint(client: AsyncCl
         "/api/v1/auth/me",
         headers={"Authorization": f"Bearer {refresh_token}"},
     )
+    todos_response = await client.get(
+        "/api/v1/todos",
+        headers={"Authorization": f"Bearer {refresh_token}"},
+    )
 
     assert response.status_code == 401
+    assert todos_response.status_code == 401
