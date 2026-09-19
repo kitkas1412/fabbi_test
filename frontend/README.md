@@ -52,6 +52,7 @@ Todos first and then users for only these deterministic fixture identities:
 | Journey 1 | `e2e-journey1-r{0..2}@example.com` | `E2eTodo@123` | `E2E Journey 1 Todo r{retry}` |
 | Journey 2 user A | `e2e-journey2-a-r{0..2}@example.com` | `E2eTodo@123` | `E2E Journey 2 Todo r{retry}` |
 | Journey 2 user B | `e2e-journey2-b-r{0..2}@example.com` | `E2eTodo@123` | None |
+| Pagination | `e2e-pagination-r{0..2}@example.com` | `E2eTodo@123` | `Pagination Todo {1..101}` |
 
 Retry indexes 0–2 match the configured initial attempt plus two CI retries. The
 backend reset refuses to run unless `E2E_ALLOW_RESET=1`; the npm prepare script
@@ -74,7 +75,9 @@ error regression intercepts registration and confirms that a FastAPI 422
 account to cover registration, logout/login, Todo creation, editing, completion
 by clicking its name, deletion, and final logout against the backend at `http://localhost:8000`.
 Journey 2 uses two isolated browser contexts and verifies that user B cannot
-see, read, update, or delete user A's Todo. The current suite therefore has five
+see, read, update, or delete user A's Todo. The pagination regression creates
+101 Todos, verifies the 101st item is available on page 2, and verifies applying
+a filter returns the dashboard to page 1. The current suite therefore has six
 Chromium tests.
 
 Failure artifacts are written to `test-results/`. The HTML report is written to

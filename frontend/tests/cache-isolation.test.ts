@@ -55,6 +55,21 @@ test("default Todo page size is bounded by the API limit", () => {
   assert.equal(DEFAULT_TODO_PAGE_SIZE, 100);
 });
 
+test("Dashboard requests the selected Todo page and resets to page one for new filters", () => {
+  const todoPageSource = readFileSync(
+    "src/features/todos/components/TodoPage.tsx",
+    "utf8",
+  );
+
+  assert.match(todoPageSource, /const \[page, setPage\] = useState\(1\)/);
+  assert.match(todoPageSource, /useTodos\(\s*user\?\.id,\s*page,/);
+  assert.match(todoPageSource, /setFilters\(nextFilters\);\s*setPage\(1\);/);
+  assert.match(todoPageSource, /aria-label="Todo pagination"/);
+  assert.match(todoPageSource, /aria-label="Previous page"/);
+  assert.match(todoPageSource, /aria-label="Next page"/);
+  assert.match(todoPageSource, /Page \{page\} of \{totalPages\}/);
+});
+
 test("Todo rows use their stable entity ID as the React key", () => {
   const todoListSource = readFileSync(
     "src/features/todos/components/TodoList.tsx",

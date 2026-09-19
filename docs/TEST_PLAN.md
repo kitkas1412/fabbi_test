@@ -8,7 +8,7 @@
 | Author | Nguyen Dinh Duc |
 | Test window | `2026-09-18` – `2026-09-19`; automated remediation and required E2E journeys complete; listed exploratory manual cases remain Not Run |
 | Environment | macOS 26.6.2; Docker 29.5.2 / Compose 5.1.4; Compose application stack |
-| Overall result | Backend/frontend regressions, five Playwright tests, and Tier 3B infrastructure checks pass; unexecuted exploratory cases are explicitly retained below |
+| Overall result | Backend/frontend regressions, six Playwright tests, and Tier 3B infrastructure checks pass; unexecuted exploratory cases are explicitly retained below |
 
 ## 1. Objective
 
@@ -36,8 +36,8 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 
 | Component | Version/configuration | Status |
 |---|---|---|
-| Browser | Playwright 1.63.0 / Chromium 153.0.8010.12 | Suite 5/5 passes; both required Tier 2B journeys and Tier 4 UI journey complete |
-| Frontend | Host Node 24 / npm; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 14/14, Playwright 5/5, lint, and production build pass |
+| Browser | Playwright 1.63.0 / Chromium 153.0.8010.12 | Suite 6/6 passes; both required Tier 2B journeys, Tier 4 UI journey, and dashboard pagination regression complete |
+| Frontend | Host Node 24 / npm; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 15/15, Playwright 6/6, lint, and production build pass |
 | Backend | Non-root container Python 3.12; `http://localhost:8000` | Fast regression suite 40/40 plus PostgreSQL/Redis integration 2/2; Black and unfiltered Flake8 pass; backend health-gated cold start passes |
 | PostgreSQL | Compose image `postgres:16-alpine` | Running; migration at head; 100 users and 1,000 todos seeded |
 | Redis | Compose image `redis:7-alpine` | Healthy with password authentication; unauthenticated commands are rejected; Journey 1/2 real-cache paths pass |
@@ -52,6 +52,7 @@ Required test identities:
 | Journey 1 user | Registration/login and Todo lifecycle | `e2e-journey1-r{0..2}@example.com`; reset before each suite |
 | User A | Owner of private Todo data | `e2e-journey2-a-r{0..2}@example.com`; isolated Journey 2 context |
 | User B | Cross-user authorization checks | `e2e-journey2-b-r{0..2}@example.com`; isolated Journey 2 context |
+| Pagination user | Dashboard page navigation | `e2e-pagination-r{0..2}@example.com`; creates 101 owned Todos; reset before each suite |
 | Revoked/deleted user | Token lifecycle checks | Planned fixture; account not created |
 
 Do not record real passwords or tokens in this document. Use disposable local test credentials supplied through test configuration.
@@ -67,10 +68,10 @@ Do not record real passwords or tokens in this document. Use disposable local te
 - [x] PostgreSQL/Redis integration tests were executed after remediation: 2/2 passed.
 - [x] The fast suite has no pytest-asyncio custom-event-loop deprecation warning.
 - [x] Backend Black and unfiltered Flake8 gates pass on the remediated tree.
-- [x] Frontend unit regressions were executed: 10/10 passed.
+- [x] Frontend unit regressions were executed: 15/15 passed.
 - [x] Frontend lint and production build pass without the bundle-size (`FE-007`) or planned native config-loader (`FE-010`) warnings.
 - [x] Frontend production and full dependency audits report 0 vulnerabilities.
-- [x] Playwright Chromium suite passes 5/5, including both required Tier 2B journeys and the Tier 4 UI journey.
+- [x] Playwright Chromium suite passes 6/6, including both required Tier 2B journeys, the Tier 4 UI journey, and dashboard pagination.
 - [x] No production credentials or data are used in assessment verification; tracked values are development placeholders.
 
 ## 5. Exit criteria
@@ -112,7 +113,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 | FE-02 | Error UX | Invalid login shows error without hard reload | Login page open | Submit wrong credentials | Stable error is shown; form remains usable | Medium / Major | Node regression confirms the global 401 handler leaves `/auth/login` responses for the form, while it still clears sessions for protected requests | Pass (Unit) |
 | FE-03 | Bulk UX | Failed bulk status update reports safely | Simulate bulk API failure | Select Todos and submit a status action | Cached lists are not invalidated and a useful error is shown | Medium / Major | Node regression verifies the bulk failure handler leaves cache work untouched and reports the API message | Pass (Unit) |
 | FE-04 | Query isolation | Todo query identity includes account, pagination, and filters | Query key factory available | Compare keys for different users, pages, sizes, keyword, status, Tag, and dates | Every response-changing input produces a distinct key | High / Critical | Node unit regression confirms distinct keys for every API list input | Pass (Unit) |
-| FE-05 | Pagination | Default Todo request is bounded | Authenticated user with the default Todo page | Load Todos without a page-size override | Request size matches the documented bounded default | Medium / Major | Node regression confirms `DEFAULT_TODO_PAGE_SIZE` is 100, matching the backend maximum | Pass (Unit) |
+| FE-05 | Pagination | Dashboard reaches later Todo pages | Authenticated user owns 101 Todos | Load the dashboard, select Next, then apply a filter from page 2 | Request uses the selected page; the 101st Todo is visible on page 2; applying filters returns to page 1 | Medium / Major | Unit regression checks the selected page/query key and controls; Playwright creates 101 Todos and verifies page 2 and filter reset | Pass (Unit + E2E) |
 | FE-06 | React rendering | Todo rows have stable React keys | A Todo list with reordered or removed entries | Render Todo rows | Every row key is the stable Todo ID, not its array position | Low / Minor | Node regression verifies `TodoList` uses `todo.id` and rejects `index` keys | Pass (Unit) |
 | INFRA-01 | Startup | Clean Docker cold start is dependable | Services stopped; environment configured | Run `docker compose up -d --build --wait` | Dependencies become healthy and backend starts without race failure | High / Major | Health order observed: PostgreSQL/Redis → backend → frontend; all services healthy without restart | Pass (Integration) |
 | INFRA-02 | Security | Runtime config isolates data services and app privileges | Compose rendered and running | Inspect config, ports, UIDs, and Redis auth | No published DB/cache port or tracked secret; apps non-root; Redis requires auth | High / Security | No DB/cache host bindings; tracked `.env` removed; UIDs 999/1000; unauthenticated Redis returns `NOAUTH` | Pass (Integration) |

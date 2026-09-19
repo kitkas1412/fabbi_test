@@ -1,10 +1,18 @@
 import { useState } from "react";
-import { ListFilter, Plus, Tags, LogOut } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ListFilter,
+  LogOut,
+  Plus,
+  Tags,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useTodos } from "../api/todos";
 import {
+  DEFAULT_TODO_PAGE_SIZE,
   DEFAULT_TODO_FILTERS,
   type TodoFilters,
 } from "../api/queryKeys";
@@ -20,13 +28,26 @@ export function TodoPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showTagManager, setShowTagManager] = useState(false);
   const [filters, setFilters] = useState<Required<TodoFilters>>(DEFAULT_TODO_FILTERS);
+  const [page, setPage] = useState(1);
   const [selectedTodoIds, setSelectedTodoIds] = useState<string[]>([]);
   const { user, logout } = useAuth();
-  const { data, isLoading, error } = useTodos(user?.id, 1, undefined, filters);
+  const { data, isLoading, error } = useTodos(
+    user?.id,
+    page,
+    DEFAULT_TODO_PAGE_SIZE,
+    filters,
+  );
   const { data: tags = [] } = useTags(user?.id);
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / data.size)) : 1;
 
   const applyFilters = (nextFilters: Required<TodoFilters>) => {
     setFilters(nextFilters);
+    setPage(1);
+    setSelectedTodoIds([]);
+  };
+
+  const changePage = (nextPage: number) => {
+    setPage(nextPage);
     setSelectedTodoIds([]);
   };
 
@@ -110,9 +131,44 @@ export function TodoPage() {
             )}
 
             {data && data.total > 0 && (
-              <div className="mt-4 text-center text-sm text-muted-foreground">
-                Showing {data.items.length} of {data.total} todos
-              </div>
+              <nav
+                className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between"
+                aria-label="Todo pagination"
+              >
+                <p className="text-sm text-muted-foreground">
+                  Showing {(page - 1) * data.size + 1}–
+                  {Math.min(page * data.size, data.total)} of {data.total} todos
+                </p>
+                <div className="flex items-center justify-between gap-2 sm:justify-end">
+                  <p className="text-sm font-medium" aria-live="polite">
+                    Page {page} of {totalPages}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      aria-label="Previous page"
+                      disabled={page === 1 || isLoading}
+                      onClick={() => changePage(page - 1)}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      aria-label="Next page"
+                      disabled={page >= totalPages || isLoading}
+                      onClick={() => changePage(page + 1)}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </nav>
             )}
           </CardContent>
         </Card>
