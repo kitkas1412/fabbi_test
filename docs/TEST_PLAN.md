@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Scope/version | Current worktree based on `b89416b` |
+| Scope/version | Current worktree based on `61b19fc` |
 | Author | Nguyen Dinh Duc |
 | Test window | `2026-09-18` – `2026-09-19`; automated remediation, required E2E journeys, and JWT endpoint matrix complete |
 | Environment | macOS 26.6.2; Docker 29.5.2 / Compose 5.1.4; Compose application stack |
@@ -43,7 +43,7 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 | Redis | Compose image `redis:7-alpine` | Healthy with password authentication; unauthenticated commands are rejected; Journey 1/2 real-cache paths pass |
 | Docker | Docker 29.5.2 / Compose 5.1.4 | Four services healthy; readiness order, non-root app users, and internal-only data ports verified |
 | OS | macOS 26.6.2 (Build 25G83) | Ready |
-| Commit | `b89416b` | Automated remediation, Tier 4, browser journeys, dashboard pagination, and JWT endpoint-matrix verification executed |
+| Commit | `61b19fc` | Documentation synchronized; automated remediation, Tier 4, browser journeys, dashboard pagination, and JWT endpoint-matrix verification executed |
 
 Required test identities:
 
@@ -171,6 +171,7 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | RUN-032 | `2026-09-19` | Tier 4 Tag DB current worktree | Fresh backend Docker image; disposable PostgreSQL 16 | Nguyen Dinh Duc with Codex assistance | Tag schema, indexes, and migration safety | **Pass**: backend pytest 44/44, Black, and Flake8; PostgreSQL upgrade → downgrade → re-upgrade passes | Case-insensitive per-user uniqueness, duplicate mapping rejection, and index metadata are covered. PostgreSQL exposes all expected Tag/mapping/filter indexes. |
 | RUN-033 | `2026-09-19` | Tier 4 Tag API current worktree | Fresh backend Docker image; disposable PostgreSQL 16 and Redis 7 | Nguyen Dinh Duc with Codex assistance | Tag CRUD, mapping, filters, bulk transaction, and cache versioning | **Pass**: backend pytest 48/48; PostgreSQL/Redis integration 3/3 | API tests cover owner boundaries, all filter inputs, compatibility `page_size`, atomic bulk denial/success, and cache invalidation. Real Redis version increments after Tag/mapping/bulk mutations. |
 | RUN-034 | `2026-09-19` | JWT matrix current worktree | Fresh backend Docker image / Python 3.12.14 | Nguyen Dinh Duc with Codex assistance | Expired, tampered, and refresh-token JWT rejection on `/auth/me` and `/todos` | **Pass**: pytest 49/49, Black, and Flake8 | Tampered-signature regression plus expanded expired/refresh regressions return 401 from both protected endpoints. |
+| RUN-035 | `2026-09-19` | `61b19fc` | Docker backend/PostgreSQL/Redis; Playwright 1.63.0 / Chromium / Vite 4173 | Nguyen Dinh Duc with Codex assistance | Full E2E rerun at HEAD | **Pass**: Playwright 6/6 in 12.6s | Reset removed only five allowlisted fixture users and 103 fixture Todos; smoke, validation, lifecycle, cross-user, Tier 4, and pagination journeys all pass. |
 
 ## 8. Defect log
 
