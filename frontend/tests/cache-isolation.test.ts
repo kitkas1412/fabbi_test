@@ -31,6 +31,15 @@ test("Todo rows use their stable entity ID as the React key", () => {
   assert.doesNotMatch(todoListSource, /key=\{index\}/);
 });
 
+test("route pages are lazy loaded instead of inflating the entry bundle", () => {
+  const routerSource = readFileSync("src/router/index.tsx", "utf8");
+
+  assert.match(routerSource, /import\("@\/pages\/LoginPage"\)/);
+  assert.match(routerSource, /import\("@\/pages\/RegisterPage"\)/);
+  assert.match(routerSource, /import\("@\/pages\/DashboardPage"\)/);
+  assert.match(routerSource, /<Suspense fallback=/);
+});
+
 test("clearing a session removes tokens and all cached queries", () => {
   const removedKeys: string[] = [];
   let removeQueriesCalls = 0;
