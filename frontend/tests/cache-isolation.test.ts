@@ -40,6 +40,17 @@ test("route pages are lazy loaded instead of inflating the entry bundle", () => 
   assert.match(routerSource, /<Suspense fallback=/);
 });
 
+test("Todo dialogs include a description for screen reader users", () => {
+  const todoFormSource = readFileSync(
+    "src/features/todos/components/TodoForm.tsx",
+    "utf8",
+  );
+
+  assert.match(todoFormSource, /DialogDescription/);
+  assert.match(todoFormSource, /Add a title and optional details/);
+  assert.match(todoFormSource, /Update the title or details/);
+});
+
 test("clearing a session removes tokens and all cached queries", () => {
   const removedKeys: string[] = [];
   let removeQueriesCalls = 0;

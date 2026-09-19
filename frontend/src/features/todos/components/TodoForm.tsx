@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -66,6 +67,11 @@ export function TodoForm({ mode, todo, open, onClose }: TodoFormProps) {
           <DialogTitle>
             {mode === "create" ? "Create Todo" : "Edit Todo"}
           </DialogTitle>
+          <DialogDescription>
+            {mode === "create"
+              ? "Add a title and optional details for your new Todo."
+              : "Update the title or details for this Todo."}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
