@@ -6,7 +6,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.exc import IntegrityError
 
-from app.core.security import create_access_token
+from app.core.security import create_access_token, get_password_hash, verify_password
 from app.models.user import User
 
 
@@ -22,6 +22,32 @@ async def test_register_success(client: AsyncClient):
     assert "access_token" in data
     assert "refresh_token" in data
     assert data["token_type"] == "bearer"
+
+
+def test_bcrypt_password_helpers_verify_existing_and_new_hashes():
+    """DEP-002: direct bcrypt avoids Passlib's incompatible version lookup."""
+    password = "password123"
+    existing_bcrypt_hash = (
+        "$2b$12$PsKgCHXE5O6NEVp6e4wRKOE9JjLRFjM1ZebL3EqtMwbp.vQt5NY6u"
+    )
+
+    new_hash = get_password_hash(password)
+
+    assert new_hash.startswith("$2b$")
+    assert verify_password(password, new_hash)
+    assert verify_password(password, existing_bcrypt_hash)
+    assert not verify_password("wrong-password", new_hash)
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_register_rejects_passwords_bcrypt_cannot_hash(client: AsyncClient):
+    """DEP-002: password length is validated before it reaches bcrypt."""
+    response = await client.post(
+        "/api/v1/auth/register",
+        json={"email": "long-password@example.com", "password": "a" * 73},
+    )
+
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio(loop_scope="session")
