@@ -1,7 +1,9 @@
 import json
+import logging
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from redis.exceptions import RedisError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_redis
@@ -18,6 +20,7 @@ from app.services.todo_service import (
 )
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 CACHE_TTL = 300  # 5 minutes
 MAX_TODO_PAGE_SIZE = 100
@@ -45,13 +48,27 @@ async def commit_todo_mutation(
     redis: RedisClient,
     user_id: uuid.UUID,
 ) -> None:
-    """Commit a Todo mutation before exposing its cache invalidation."""
+    """Commit a Todo mutation before best-effort cache invalidation.
+
+    Once the database transaction has committed, a Redis outage must not make
+    the client retry a mutation that already succeeded. A failed invalidation
+    is logged for operational alerting; cached lists can remain stale until
+    their normal TTL expires.
+    """
     try:
         await db.commit()
     except Exception:
         await db.rollback()
         raise
-    await invalidate_todo_cache(redis, user_id)
+
+    try:
+        await invalidate_todo_cache(redis, user_id)
+    except RedisError:
+        logger.warning(
+            "todo_cache_invalidation_failed",
+            extra={"user_id": str(user_id)},
+            exc_info=True,
+        )
 
 
 @router.get("", response_model=TodoListResponse)

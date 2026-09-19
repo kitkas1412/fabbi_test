@@ -7,8 +7,8 @@
 | Assessment branch | `assessment/nguyen-dinh-duc` |
 | Author | Nguyen Dinh Duc |
 | Review date | `2026-09-19` |
-| Application version/commit | `85346dc` (`test(e2e): verify deployed Todo requests use bounded page size`) |
-| Overall status | Historical remediation findings and `FE-011` are verified. `AUTH-006` and `CONFIG-002` are fixed and verified in the current worktree, pending commit. Tier 4 is optional and not implemented. Manual exploratory cases and final PR review remain separate submission activities. |
+| Application version/commit | `2d8bcff` (`fix(config): restrict CORS origins and disable SQL echo`) |
+| Overall status | Historical remediation findings through `CONFIG-002` are verified. `CACHE-004` is fixed and verified in the current worktree, pending commit. Tier 4 is optional and not implemented. Manual exploratory cases and final PR review remain separate submission activities. |
 
 ## Purpose
 
@@ -36,13 +36,14 @@ No Critical or High issue may remain Deferred for final submission.
 | AUTH-003 | Session | Refresh rotation/revocation and logout are ineffective | High | `backend/app/api/v1/auth.py`, `backend/app/core/redis.py` | Verified | `576e7c6` | `test_refresh_token_rotation_rejects_replay` and `test_logout_revokes_access_and_refresh_session`; fast Docker suite subsequently passes 38/38 |
 | AUTH-004 | Authentication | Login response enables user enumeration | Medium | `backend/app/api/v1/auth.py::login` | Verified | `5771570` | `test_login_failure_does_not_reveal_whether_email_exists` verifies identical 401 body for unknown email and wrong password; fast Docker suite subsequently passes 38/38 |
 | AUTH-005 | Configuration | Default JWT secret can be used outside a safe local profile | High | `backend/app/core/config.py` | Verified | `de88674` | Sensitive settings have no source fallback; three parameterized regressions require database, Redis, and JWT configuration |
-| AUTH-006 | Validation | Authentication endpoints accept empty or too-short passwords | Medium | `backend/app/schemas/user.py`, `backend/app/api/v1/auth.py` | Verified | Current worktree; commit pending | `UserCreate` and `UserLogin` require at least 6 characters and reject more than 72 UTF-8 bytes; API regressions cover empty/short registration and login requests. |
+| AUTH-006 | Validation | Authentication endpoints accept empty or too-short passwords | Medium | `backend/app/schemas/user.py`, `backend/app/api/v1/auth.py` | Verified | `3d7029d` | `UserCreate` and `UserLogin` require at least 6 characters and reject more than 72 UTF-8 bytes; API regressions cover empty/short registration and login requests. |
 | TODO-001 | Authorization | Todo detail/update/delete are not owner-scoped | Critical | `backend/app/api/v1/todos.py` | Verified | `16cda47` | API regression and Playwright Journey 2 confirm cross-user GET/PUT/DELETE return 404 and owner data remains unchanged |
 | TODO-002 | Update | `completed=false` is ignored | High | `backend/app/api/v1/todos.py::update_existing_todo` | Verified | `0ff4674` | `test_partial_update_can_set_completed_to_false`; backend suite 19/19 passes |
 | TODO-003 | Update | An omitted description can be overwritten with `null` | High | `backend/app/api/v1/todos.py::update_existing_todo` | Verified | `0ff4674` | `test_partial_update_preserves_omitted_description`; backend suite 19/19 passes |
 | CACHE-001 | Data isolation | Todo list cache key is shared across users and queries | Critical | `backend/app/api/v1/todos.py::list_todos` | Verified | `5816658` | Mock tests cover user/query variants; Journey 2 confirms user B's real-Redis list response and UI exclude user A's Todo |
 | CACHE-002 | Consistency | Todo mutations do not invalidate list cache | High | `backend/app/api/v1/todos.py` | Verified | `5816658` | Mock regression passes; Playwright Journey 1 also observes fresh create/edit/complete/delete state against PostgreSQL and real Redis |
 | CACHE-003 | Transactions | Cache invalidation is not coordinated with DB commit | High | `backend/app/api/v1/todos.py::commit_todo_mutation` | Verified | `b35b042` | Commit-order regressions prove failed commits leave Redis untouched and successful paths run `commit → invalidate`; fast Docker suite subsequently passes 38/38 |
+| CACHE-004 | Availability | A Redis invalidation failure after DB commit makes a successful Todo mutation return 500 | High | `backend/app/api/v1/todos.py::commit_todo_mutation` | Verified | Current worktree; commit pending | `test_create_todo_succeeds_when_cache_invalidation_is_unavailable` proves the API returns 201, persists the Todo, and logs the invalidation failure; backend Docker suite 41/41 passes |
 | DB-001 | Integrity | Email uniqueness is not enforced by the database | High | `backend/app/models/user.py`, `backend/alembic/versions/d4e6f8a0b2c3_add_users_email_unique_constraint.py` | Verified | `cc6bec5` | `test_user_email_is_unique_in_database` proves a duplicate insert raises `IntegrityError`; registration catches a concurrent constraint conflict; fast Docker suite subsequently passes 38/38 |
 | DB-002 | Pagination | Todo queries have no deterministic ordering | Medium | `backend/app/services/todo_service.py::get_todos` | Verified | `cb13a34` | Newest-first `created_at, id` order and `test_get_todos_orders_newest_first`; 23/23 backend tests pass |
 | DB-003 | Performance | Todo list performs an additional user query per row | Medium | `backend/app/services/todo_service.py::get_todos` | Verified | `457853c` | `test_todo_list_eager_loads_users_for_response` verifies every returned Todo has its user relationship eagerly loaded; fast Docker suite subsequently passes 38/38 |
@@ -59,11 +60,11 @@ No Critical or High issue may remain Deferred for final submission.
 | INFRA-003 | Network | PostgreSQL and unauthenticated Redis are published to the host | High | `docker-compose.yml` | Verified | `de88674` | `docker compose ps` shows only internal `5432/tcp` and `6379/tcp`; unauthenticated `redis-cli ping` returns `NOAUTH` |
 | INFRA-004 | Containers | Images run as root and lack scoped `.dockerignore` files | Medium | Backend/frontend Dockerfiles | Verified | `de88674` | Backend runs as `uid=999(app)`, frontend as `uid=1000(node)`; scoped ignore files reduce contexts to application inputs and exclude nested caches |
 | INFRA-005 | Build | Frontend build is not reproducible and runtime Vite env is ineffective | Medium | Frontend Dockerfile and Compose | Verified | `de88674` | Image build uses `npm ci`; `VITE_API_URL` is supplied as a build argument; production image build passes |
-| TEST-001 | Coverage | Existing tests cover happy paths but not security boundaries | High | `backend/tests/` | Verified | `cea96fd`, `5816658`, `576e7c6`–current | Suite covers expiry, token type, refresh rotation/revocation, login enumeration, password validation, database email uniqueness, cross-user CRUD, cache isolation/invalidation/commit ordering, eager Todo users, bounded pagination, partial updates, required secrets, stable ordering, settings, and CORS configuration; 40/40 pass |
+| TEST-001 | Coverage | Existing tests cover happy paths but not security boundaries | High | `backend/tests/` | Verified | `cea96fd`, `5816658`, `576e7c6`–current | Suite covers expiry, token type, refresh rotation/revocation, login enumeration, password validation, database email uniqueness, cross-user CRUD, cache isolation/invalidation/commit ordering/outage handling, eager Todo users, bounded pagination, partial updates, required secrets, stable ordering, settings, and CORS configuration; 41/41 pass |
 | TEST-002 | Fidelity | SQLite and per-request Redis mocks do not validate production behavior | Medium | `backend/integration_tests/` | Verified | `6a68c70` | Dedicated Compose suite passes 2/2 against PostgreSQL 16 and authenticated Redis 7: direct user-scoped cache namespaces/invalidation plus atomic concurrent refresh rotation |
 | TEST-003 | Test maintenance | Custom async event-loop fixture is deprecated and will become an error | Low | `backend/tests/`, `backend/pytest.ini` | Verified | `3326159` | Tests declare session loop scope with pytest-asyncio and a warning filter makes reintroducing the deprecated custom fixture fail; fast suite 38/38 has no pytest-asyncio event-loop warning |
 | CONFIG-001 | Backend compatibility | Pydantic class-based `Config` is deprecated before Pydantic v3 | Low | `backend/app/core/config.py` | Verified | `dd80d33` | `SettingsConfigDict` preserves the environment-file and case-sensitive contract; configuration regression plus backend tests, Black, and Flake8 pass without the Pydantic warning |
-| CONFIG-002 | Security | CORS permits any origin and SQL echo logs queries by default | High | `backend/app/main.py`, `backend/app/core/config.py` | Verified | Current worktree; commit pending | Credentialed CORS now uses configured non-wildcard origins; `DB_ECHO` defaults to `false`. Regressions cover allowed/rejected origins, CORS validation, and the logging default. |
+| CONFIG-002 | Security | CORS permits any origin and SQL echo logs queries by default | High | `backend/app/main.py`, `backend/app/core/config.py` | Verified | `2d8bcff` | Credentialed CORS now uses configured non-wildcard origins; `DB_ECHO` defaults to `false`. Regressions cover allowed/rejected origins, CORS validation, and the logging default. |
 | DEP-001 | Frontend security | Production dependency tree contains 6 known vulnerabilities | High | `frontend/package.json`, `frontend/package-lock.json` | Verified | `15426ca` | Axios floor raised to 1.20.0, React Router DOM floor to 7.18.4, and compatible transitive fixes are locked; `npm audit` reports 0 vulnerabilities |
 | DEP-002 | Backend compatibility | Passlib/bcrypt stack emits an internal version lookup error during password hashing | Medium | `backend/requirements.txt`, `backend/app/core/security.py` | Verified | `fecd7e0` | Removed unmaintained Passlib and call bcrypt directly; current `$2b$` hashes remain valid. Registration/login reject passwords over bcrypt's 72 UTF-8-byte limit before hashing, and the backend suite has no Passlib/`crypt` warning. |
 | QUALITY-001 | Backend quality | Required backend Black and Flake8 gates failed | Low | `backend/tests/conftest.py` | Verified | `24bba4d` | The five intentionally delayed imports document the database bootstrap requirement and use scoped `# noqa: E402`; `black --check .` and unfiltered `flake8 app tests` pass |
@@ -78,7 +79,7 @@ Add newly discovered issues before implementing their fixes. Do not silently omi
 
 ### AUTH-006 — Authentication accepts passwords shorter than the UI contract
 
-- **Status:** Verified (current worktree; commit pending)
+- **Status:** Verified
 - **Severity:** Medium
 - **Category:** Validation / Authentication
 - **Location:** `backend/app/schemas/user.py::UserCreate`,
@@ -97,11 +98,39 @@ Add newly discovered issues before implementing their fixes. Do not silently omi
   valid 6-character password and UTF-8 boundaries (18 vs. 19 emoji).
 - **Verification:** Backend Docker suite 40/40, Black, and Flake8 pass;
   frontend unit suite 10/10, ESLint, and production build pass.
+- **PR/commit:** `3d7029d`.
+
+### CACHE-004 — Redis invalidation failure turns a committed Todo mutation into 500
+
+- **Status:** Verified (current worktree; commit pending)
+- **Severity:** High
+- **Category:** Availability / Consistency
+- **Location:** `backend/app/api/v1/todos.py::commit_todo_mutation`.
+- **Observed behavior:** The helper committed the database transaction, then
+  awaited Redis invalidation without handling Redis errors. A Redis outage could
+  therefore return `500` after a Todo was already written, encouraging the
+  client to retry and create a duplicate.
+- **Expected behavior:** A database commit remains successful when cache
+  invalidation is unavailable. The cache failure is observable, while DB commit
+  failures still roll back and fail the request.
+- **Fix applied:** Redis `RedisError` during Todo-list version invalidation is
+  handled as best effort only after a successful commit. The application logs
+  the `todo_cache_invalidation_failed` event with the affected user ID and a
+  traceback for alerting.
+- **Compatibility/tradeoffs:** This prioritizes write availability and avoids
+  duplicate retries. If Redis recovers with an old list entry, that entry can
+  remain stale for its five-minute TTL. A durable outbox or idempotency key is
+  the next step if immediate invalidation or retry-safe write deduplication is
+  required.
+- **Regression test:** `test_create_todo_succeeds_when_cache_invalidation_is_unavailable`
+  makes Redis `incr` fail, then verifies `201`, DB-visible data, and the warning
+  event.
+- **Verification:** Backend Docker suite 41/41, Black, and Flake8 pass.
 - **PR/commit:** Current worktree; commit pending.
 
 ### CONFIG-002 — Credentialed CORS is open and SQL logging defaults to on
 
-- **Status:** Verified (current worktree; commit pending)
+- **Status:** Verified
 - **Severity:** High
 - **Category:** Configuration / Data exposure
 - **Location:** `backend/app/main.py::CORSMiddleware` and
@@ -118,7 +147,7 @@ Add newly discovered issues before implementing their fixes. Do not silently omi
   parsing, and wildcard rejection. API regression verifies the local frontend
   origin receives CORS headers while an untrusted origin does not.
 - **Verification:** Backend Docker suite 40/40, Black, and Flake8 pass.
-- **PR/commit:** Current worktree; commit pending.
+- **PR/commit:** `2d8bcff`.
 
 ### FE-011 — Stale frontend image requests an invalid Todo page size
 
@@ -211,7 +240,7 @@ Copy this section once per finding or link the register row to the corresponding
 | Check | Command/environment | Expected | Actual | Date | Evidence |
 |---|---|---|---|---|---|
 | Compose validation | `docker compose --env-file .env.example config -q` | Pass | Pass (exit 0) | `2026-09-18` | Required secret variables resolve from the documented template; rendered Compose is valid |
-| Backend tests | `docker compose run --rm --no-deps backend pytest tests/ -v` | Pass | Pass in a fresh non-root Python 3.12 image: 40/40; no warnings after the bcrypt migration | `2026-09-19` | Includes refresh rotation/revocation, login-enumeration, password validation, CORS configuration, database uniqueness, cache commit-ordering, eager Todo users, bounded pagination, required-secret, deterministic-order, settings, and bcrypt regressions |
+| Backend tests | `docker compose run --rm --no-deps backend pytest tests/ -v` | Pass | Pass in a fresh non-root Python 3.12 image: 41/41; no warnings after the bcrypt migration | `2026-09-19` | Includes refresh rotation/revocation, login-enumeration, password validation, CORS configuration, database uniqueness, cache commit-ordering/outage resilience, eager Todo users, bounded pagination, required-secret, deterministic-order, settings, and bcrypt regressions |
 | PostgreSQL/Redis integration tests | `docker compose run --rm --no-deps backend sh -c 'alembic upgrade head && pytest integration_tests/ -q'` | Pass | Pass in non-root Python 3.12.14 image: 2/2 | `2026-09-18` | Uses PostgreSQL 16 and authenticated Redis 7; verifies cache key isolation/invalidation and one successful result across concurrent refresh attempts |
 | Backend regression suite | `uv run --python 3.12 --isolated --no-project --with-requirements requirements.txt pytest tests/ -v` | Pass | Pass on Python 3.12.12: 19 collected, 19 passed; 3 deprecation warning groups | `2026-09-18` | Covers AUTH-001/002, TODO-001/002/003, CACHE-001/002; SQLite and stateful Redis mock only |
 | Backend format/lint | `black --check .`; `flake8 app tests integration_tests` | Pass | Black passes for all 33 Python files; Flake8 completes without findings | `2026-09-18` | `QUALITY-001` verified after five documented, scoped `E402` suppressions |
@@ -234,4 +263,4 @@ Copy this section once per finding or link the register row to the corresponding
 
 | Risk | Severity | Reason not fixed | Mitigation | Owner | Review date |
 |---|---|---|---|---|---|
-| Redis outage handling is not exercised | Medium | The suite uses a healthy authenticated Redis service; it does not inject Redis failures or validate an outbox/retry design | Alert on Redis failures and add controlled outage testing before a production release | Nguyen Dinh Duc | `2026-09-18` |
+| Redis invalidation is best effort, not durable | Medium | A Redis `incr` outage no longer fails a committed Todo mutation, but an old cached list can remain stale for its five-minute TTL after Redis recovers | Alert on `todo_cache_invalidation_failed`; add an outbox or idempotency key if immediate invalidation or write deduplication is required | Nguyen Dinh Duc | `2026-09-19` |

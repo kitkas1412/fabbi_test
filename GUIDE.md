@@ -77,6 +77,11 @@ rejected because the API accepts credentialed requests. `DB_ECHO` defaults to
 `false`; enable it only briefly for local SQL diagnostics because queries can
 contain personal data.
 
+Todo mutations commit the database before attempting Redis list-cache
+invalidation. If Redis is unavailable at that point, the API preserves the
+successful mutation and logs `todo_cache_invalidation_failed` for alerting;
+previous list entries can remain stale for up to the five-minute cache TTL.
+
 By default the seed command creates 100 users and 1,000 TODOs so the assessment is quick to set up. To test performance with a larger dataset, pass seed variables explicitly:
 
 ```bash

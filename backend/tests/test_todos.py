@@ -1,10 +1,12 @@
 """Todo tests."""
 
+import logging
 import uuid
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from httpx import AsyncClient
+from redis.exceptions import RedisError
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -406,6 +408,31 @@ async def test_todo_cache_invalidation_follows_successful_commit():
     )
 
     assert events == ["commit", "invalidate"]
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_create_todo_succeeds_when_cache_invalidation_is_unavailable(
+    client: AsyncClient,
+    shared_redis: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+):
+    """CACHE-004: a committed Todo must not become a 500 when Redis is down."""
+    token = await get_auth_token(client, "redis-outage@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+    shared_redis.incr.side_effect = RedisError("Redis unavailable")
+    caplog.set_level(logging.WARNING, logger="app.api.v1.todos")
+
+    created = await client.post(
+        "/api/v1/todos",
+        json={"title": "Persist despite cache outage"},
+        headers=headers,
+    )
+    listed = await client.get("/api/v1/todos", headers=headers)
+
+    assert created.status_code == 201
+    assert listed.status_code == 200
+    assert [item["id"] for item in listed.json()["items"]] == [created.json()["id"]]
+    assert "todo_cache_invalidation_failed" in caplog.text
 
 
 @pytest.mark.asyncio(loop_scope="session")
