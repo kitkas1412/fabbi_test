@@ -9,6 +9,7 @@ import {
 import { shouldClearSessionForUnauthorized } from "../src/lib/authErrorHandling.js";
 import { getApiErrorMessage } from "../src/lib/apiError.js";
 import { clearUserSession } from "../src/lib/sessionCleanup.js";
+import { passwordSchema } from "../src/features/auth/schemas/auth.js";
 
 test("todo list keys are isolated by user and pagination", () => {
   const firstPage = todoKeys.list("user-a", 1, 20);
@@ -83,6 +84,15 @@ test("API validation details are converted to a safe toast message", () => {
     getApiErrorMessage({ isAxiosError: true, response: { data: {} } }, "Fallback"),
     "Fallback",
   );
+});
+
+test("password validation matches the backend character and UTF-8 byte limits", () => {
+  assert.equal(passwordSchema.safeParse("abcdef").success, true);
+  assert.equal(passwordSchema.safeParse("short").success, false);
+  assert.equal(passwordSchema.safeParse("😀".repeat(3)).success, false);
+  assert.equal(passwordSchema.safeParse("😀".repeat(6)).success, true);
+  assert.equal(passwordSchema.safeParse("😀".repeat(18)).success, true);
+  assert.equal(passwordSchema.safeParse("😀".repeat(19)).success, false);
 });
 
 test("clearing a session removes tokens and all cached queries", () => {

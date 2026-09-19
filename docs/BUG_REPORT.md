@@ -8,7 +8,7 @@
 | Author | Nguyen Dinh Duc |
 | Review date | `2026-09-19` |
 | Application version/commit | `85346dc` (`test(e2e): verify deployed Todo requests use bounded page size`) |
-| Overall status | Historical remediation findings and `FE-011` are verified. Tier 4 is optional and not implemented. Manual exploratory cases and final PR review remain separate submission activities. |
+| Overall status | Historical remediation findings and `FE-011` are verified. `AUTH-006` is fixed and verified in the current worktree, pending commit. Tier 4 is optional and not implemented. Manual exploratory cases and final PR review remain separate submission activities. |
 
 ## Purpose
 
@@ -33,20 +33,21 @@ No Critical or High issue may remain Deferred for final submission.
 |---|---|---|---|---|---|---|---|
 | AUTH-001 | JWT | Expiration verification is disabled | Critical | `backend/app/core/security.py::verify_token` | Verified | `834bcf9` | `test_expired_access_token_is_rejected`; backend suite 19/19 passes |
 | AUTH-002 | JWT | Access dependencies do not enforce token type | Critical | `backend/app/api/deps.py::get_current_user` | Verified | `834bcf9` | `test_refresh_token_cannot_authenticate_access_endpoint`; backend suite 19/19 passes |
-| AUTH-003 | Session | Refresh rotation/revocation and logout are ineffective | High | `backend/app/api/v1/auth.py`, `backend/app/core/redis.py` | Verified | `576e7c6` | `test_refresh_token_rotation_rejects_replay` and `test_logout_revokes_access_and_refresh_session`; fast Docker suite subsequently passes 34/34 |
-| AUTH-004 | Authentication | Login response enables user enumeration | Medium | `backend/app/api/v1/auth.py::login` | Verified | `5771570` | `test_login_failure_does_not_reveal_whether_email_exists` verifies identical 401 body for unknown email and wrong password; fast Docker suite subsequently passes 34/34 |
+| AUTH-003 | Session | Refresh rotation/revocation and logout are ineffective | High | `backend/app/api/v1/auth.py`, `backend/app/core/redis.py` | Verified | `576e7c6` | `test_refresh_token_rotation_rejects_replay` and `test_logout_revokes_access_and_refresh_session`; fast Docker suite subsequently passes 38/38 |
+| AUTH-004 | Authentication | Login response enables user enumeration | Medium | `backend/app/api/v1/auth.py::login` | Verified | `5771570` | `test_login_failure_does_not_reveal_whether_email_exists` verifies identical 401 body for unknown email and wrong password; fast Docker suite subsequently passes 38/38 |
 | AUTH-005 | Configuration | Default JWT secret can be used outside a safe local profile | High | `backend/app/core/config.py` | Verified | `de88674` | Sensitive settings have no source fallback; three parameterized regressions require database, Redis, and JWT configuration |
+| AUTH-006 | Validation | Authentication endpoints accept empty or too-short passwords | Medium | `backend/app/schemas/user.py`, `backend/app/api/v1/auth.py` | Verified | Current worktree; commit pending | `UserCreate` and `UserLogin` require at least 6 characters and reject more than 72 UTF-8 bytes; API regressions cover empty/short registration and login requests. |
 | TODO-001 | Authorization | Todo detail/update/delete are not owner-scoped | Critical | `backend/app/api/v1/todos.py` | Verified | `16cda47` | API regression and Playwright Journey 2 confirm cross-user GET/PUT/DELETE return 404 and owner data remains unchanged |
 | TODO-002 | Update | `completed=false` is ignored | High | `backend/app/api/v1/todos.py::update_existing_todo` | Verified | `0ff4674` | `test_partial_update_can_set_completed_to_false`; backend suite 19/19 passes |
 | TODO-003 | Update | An omitted description can be overwritten with `null` | High | `backend/app/api/v1/todos.py::update_existing_todo` | Verified | `0ff4674` | `test_partial_update_preserves_omitted_description`; backend suite 19/19 passes |
 | CACHE-001 | Data isolation | Todo list cache key is shared across users and queries | Critical | `backend/app/api/v1/todos.py::list_todos` | Verified | `5816658` | Mock tests cover user/query variants; Journey 2 confirms user B's real-Redis list response and UI exclude user A's Todo |
 | CACHE-002 | Consistency | Todo mutations do not invalidate list cache | High | `backend/app/api/v1/todos.py` | Verified | `5816658` | Mock regression passes; Playwright Journey 1 also observes fresh create/edit/complete/delete state against PostgreSQL and real Redis |
-| CACHE-003 | Transactions | Cache invalidation is not coordinated with DB commit | High | `backend/app/api/v1/todos.py::commit_todo_mutation` | Verified | `b35b042` | Commit-order regressions prove failed commits leave Redis untouched and successful paths run `commit → invalidate`; fast Docker suite subsequently passes 34/34 |
-| DB-001 | Integrity | Email uniqueness is not enforced by the database | High | `backend/app/models/user.py`, `backend/alembic/versions/d4e6f8a0b2c3_add_users_email_unique_constraint.py` | Verified | `cc6bec5` | `test_user_email_is_unique_in_database` proves a duplicate insert raises `IntegrityError`; registration catches a concurrent constraint conflict; fast Docker suite subsequently passes 34/34 |
+| CACHE-003 | Transactions | Cache invalidation is not coordinated with DB commit | High | `backend/app/api/v1/todos.py::commit_todo_mutation` | Verified | `b35b042` | Commit-order regressions prove failed commits leave Redis untouched and successful paths run `commit → invalidate`; fast Docker suite subsequently passes 38/38 |
+| DB-001 | Integrity | Email uniqueness is not enforced by the database | High | `backend/app/models/user.py`, `backend/alembic/versions/d4e6f8a0b2c3_add_users_email_unique_constraint.py` | Verified | `cc6bec5` | `test_user_email_is_unique_in_database` proves a duplicate insert raises `IntegrityError`; registration catches a concurrent constraint conflict; fast Docker suite subsequently passes 38/38 |
 | DB-002 | Pagination | Todo queries have no deterministic ordering | Medium | `backend/app/services/todo_service.py::get_todos` | Verified | `cb13a34` | Newest-first `created_at, id` order and `test_get_todos_orders_newest_first`; 23/23 backend tests pass |
-| DB-003 | Performance | Todo list performs an additional user query per row | Medium | `backend/app/services/todo_service.py::get_todos` | Verified | `457853c` | `test_todo_list_eager_loads_users_for_response` verifies every returned Todo has its user relationship eagerly loaded; fast Docker suite subsequently passes 34/34 |
+| DB-003 | Performance | Todo list performs an additional user query per row | Medium | `backend/app/services/todo_service.py::get_todos` | Verified | `457853c` | `test_todo_list_eager_loads_users_for_response` verifies every returned Todo has its user relationship eagerly loaded; fast Docker suite subsequently passes 38/38 |
 | DB-004 | Performance | Core Todo queries lack a measured composite-index strategy | Medium | `todos` table migrations | Verified | `cb13a34` | PostgreSQL 16.15, 1M Todo before/after evidence in `docs/PERFORMANCE_REPORT.md`; Q1/Q2 medians improve 397.2×/322.4× |
-| API-001 | Resource control | Todo page size has no upper bound | Medium | `backend/app/api/v1/todos.py::list_todos` | Verified | `729f1e8` | `test_todo_list_rejects_page_size_above_maximum` confirms `size=101` returns 422; backend cap and frontend default are both 100; fast Docker suite subsequently passes 34/34 |
+| API-001 | Resource control | Todo page size has no upper bound | Medium | `backend/app/api/v1/todos.py::list_todos` | Verified | `729f1e8` | `test_todo_list_rejects_page_size_above_maximum` confirms `size=101` returns 422; backend cap and frontend default are both 100; fast Docker suite subsequently passes 38/38 |
 | FE-001 | Data isolation | Todo React Query key omits user and pagination context | High | `frontend/src/features/todos/api/todos.ts` | Verified | `d5fa690` | Node regression confirms keys differ by user, page, and size; lint/build and the final 9/9 frontend unit suite pass |
 | FE-002 | Session | Logout/account change does not clear user-scoped query data | High | Auth hooks and query client | Verified | `d5fa690` | Unit regression confirms token/query cleanup; Journey 1 confirms browser logout cleanup and Journey 2 confirms isolated sessions; same-context account switching remains unit-only |
 | FE-003 | State | Optimistic update does not restore the snapshot on error | Medium | `frontend/src/features/todos/api/todos.ts` | Fixed | `d5fa690` | User-scoped snapshots are restored in `onError`; lint/build pass. A component-level forced-mutation-failure test is still a useful future strengthening. |
@@ -58,9 +59,9 @@ No Critical or High issue may remain Deferred for final submission.
 | INFRA-003 | Network | PostgreSQL and unauthenticated Redis are published to the host | High | `docker-compose.yml` | Verified | `de88674` | `docker compose ps` shows only internal `5432/tcp` and `6379/tcp`; unauthenticated `redis-cli ping` returns `NOAUTH` |
 | INFRA-004 | Containers | Images run as root and lack scoped `.dockerignore` files | Medium | Backend/frontend Dockerfiles | Verified | `de88674` | Backend runs as `uid=999(app)`, frontend as `uid=1000(node)`; scoped ignore files reduce contexts to application inputs and exclude nested caches |
 | INFRA-005 | Build | Frontend build is not reproducible and runtime Vite env is ineffective | Medium | Frontend Dockerfile and Compose | Verified | `de88674` | Image build uses `npm ci`; `VITE_API_URL` is supplied as a build argument; production image build passes |
-| TEST-001 | Coverage | Existing tests cover happy paths but not security boundaries | High | `backend/tests/` | Verified | `cea96fd`, `5816658`, `576e7c6`–`fecd7e0` | Suite covers expiry, token type, refresh rotation/revocation, login enumeration, database email uniqueness, cross-user CRUD, cache isolation/invalidation/commit ordering, eager Todo users, bounded pagination, partial updates, required secrets, stable ordering, and settings loading; 34/34 pass |
+| TEST-001 | Coverage | Existing tests cover happy paths but not security boundaries | High | `backend/tests/` | Verified | `cea96fd`, `5816658`, `576e7c6`–current | Suite covers expiry, token type, refresh rotation/revocation, login enumeration, password validation, database email uniqueness, cross-user CRUD, cache isolation/invalidation/commit ordering, eager Todo users, bounded pagination, partial updates, required secrets, stable ordering, and settings loading; 38/38 pass |
 | TEST-002 | Fidelity | SQLite and per-request Redis mocks do not validate production behavior | Medium | `backend/integration_tests/` | Verified | `6a68c70` | Dedicated Compose suite passes 2/2 against PostgreSQL 16 and authenticated Redis 7: direct user-scoped cache namespaces/invalidation plus atomic concurrent refresh rotation |
-| TEST-003 | Test maintenance | Custom async event-loop fixture is deprecated and will become an error | Low | `backend/tests/`, `backend/pytest.ini` | Verified | `3326159` | Tests declare session loop scope with pytest-asyncio and a warning filter makes reintroducing the deprecated custom fixture fail; fast suite 34/34 has no pytest-asyncio event-loop warning |
+| TEST-003 | Test maintenance | Custom async event-loop fixture is deprecated and will become an error | Low | `backend/tests/`, `backend/pytest.ini` | Verified | `3326159` | Tests declare session loop scope with pytest-asyncio and a warning filter makes reintroducing the deprecated custom fixture fail; fast suite 38/38 has no pytest-asyncio event-loop warning |
 | CONFIG-001 | Backend compatibility | Pydantic class-based `Config` is deprecated before Pydantic v3 | Low | `backend/app/core/config.py` | Verified | `dd80d33` | `SettingsConfigDict` preserves the environment-file and case-sensitive contract; configuration regression plus backend tests, Black, and Flake8 pass without the Pydantic warning |
 | DEP-001 | Frontend security | Production dependency tree contains 6 known vulnerabilities | High | `frontend/package.json`, `frontend/package-lock.json` | Verified | `15426ca` | Axios floor raised to 1.20.0, React Router DOM floor to 7.18.4, and compatible transitive fixes are locked; `npm audit` reports 0 vulnerabilities |
 | DEP-002 | Backend compatibility | Passlib/bcrypt stack emits an internal version lookup error during password hashing | Medium | `backend/requirements.txt`, `backend/app/core/security.py` | Verified | `fecd7e0` | Removed unmaintained Passlib and call bcrypt directly; current `$2b$` hashes remain valid. Registration/login reject passwords over bcrypt's 72 UTF-8-byte limit before hashing, and the backend suite has no Passlib/`crypt` warning. |
@@ -73,6 +74,29 @@ No Critical or High issue may remain Deferred for final submission.
 | DOC-001 | Deliverables | `docs/` was ignored despite required assessment documents | Medium | `.gitignore` | Verified | `3d1936b` | Deliverables are tracked while `docs/ANSWER_KEY.md` remains ignored |
 
 Add newly discovered issues before implementing their fixes. Do not silently omit a finding because it falls outside the minimum five fixes required by Tier 1.
+
+### AUTH-006 — Authentication accepts passwords shorter than the UI contract
+
+- **Status:** Verified (current worktree; commit pending)
+- **Severity:** Medium
+- **Category:** Validation / Authentication
+- **Location:** `backend/app/schemas/user.py::UserCreate`,
+  `backend/app/schemas/user.py::UserLogin`, and `backend/app/api/v1/auth.py::login`.
+- **Observed behavior:** The backend only rejected passwords above bcrypt's
+  72-byte limit. Empty and short values reached registration or login even though
+  the frontend requires at least 6 characters.
+- **Expected behavior:** Registration and login reject passwords shorter than 6
+  characters with `422`; both layers also reject passwords exceeding 72 UTF-8
+  bytes before bcrypt is called.
+- **Fix applied:** Added Pydantic `min_length=6` to both authentication request
+  schemas, changed the login route to use `UserLogin`, and reused a Zod password
+  schema that enforces both the character minimum and byte maximum.
+- **Regression test:** Backend parameterized API test covers empty and 5-character
+  passwords for `/auth/register` and `/auth/login`. Frontend unit test covers a
+  valid 6-character password and UTF-8 boundaries (18 vs. 19 emoji).
+- **Verification:** Backend Docker suite 38/38, Black, and Flake8 pass;
+  frontend unit suite 10/10, ESLint, and production build pass.
+- **PR/commit:** Current worktree; commit pending.
 
 ### FE-011 — Stale frontend image requests an invalid Todo page size
 
@@ -150,7 +174,7 @@ Copy this section once per finding or link the register row to the corresponding
 |---|---|---|---|
 | Tier 1: report impactful findings | This document and final PR description | Register contains location, severity, cause, fix and verification for every recorded finding | Complete; PR link remains an external submission task |
 | Tier 1: at least five fixes, including two backend and one frontend | Finding register and implementation commits | AUTH-001/002, TODO-001/002/003, CACHE-001/002, FE-001/002/003 and later fixes | Complete |
-| Tier 2A: at least three backend critical scenarios | `backend/tests/` | 34/34 pass, including expiry, token type, ownership, partial-update, cache, rotation/revocation, configuration and dependency regressions | Complete |
+| Tier 2A: at least three backend critical scenarios | `backend/tests/` | 38/38 pass, including expiry, token type, ownership, password validation, partial-update, cache, rotation/revocation, configuration and dependency regressions | Complete |
 | Tier 2B: two required Playwright scenarios | `frontend/e2e/` and `frontend/playwright.config.ts` | Lifecycle Journey 1 and cross-user isolation Journey 2 pass; smoke and structured-error regressions bring the suite to 4/4 | Complete (2/2 required journeys) |
 | Tier 2C: manual test plan | `docs/TEST_PLAN.md` | Structured matrix, execution history and automated evidence are recorded; listed exploratory cases remain explicitly Not Run | Complete deliverable |
 | Tier 3A: Todo Sharing specification only | `docs/TODO_SHARING_SPEC.md` | Production-grade proposed specification with stories, schema, APIs, authorization, cache and rollout | Complete |
@@ -165,14 +189,14 @@ Copy this section once per finding or link the register row to the corresponding
 | Check | Command/environment | Expected | Actual | Date | Evidence |
 |---|---|---|---|---|---|
 | Compose validation | `docker compose --env-file .env.example config -q` | Pass | Pass (exit 0) | `2026-09-18` | Required secret variables resolve from the documented template; rendered Compose is valid |
-| Backend tests | `docker compose run --rm --no-deps backend pytest tests/ -v` | Pass | Pass in a fresh non-root Python 3.12 image: 34/34; no warnings after the bcrypt migration | `2026-09-19` | Includes refresh rotation/revocation, login-enumeration, database uniqueness, cache commit-ordering, eager Todo users, bounded pagination, required-secret, deterministic-order, settings, and bcrypt regressions |
+| Backend tests | `docker compose run --rm --no-deps backend pytest tests/ -v` | Pass | Pass in a fresh non-root Python 3.12 image: 38/38; no warnings after the bcrypt migration | `2026-09-19` | Includes refresh rotation/revocation, login-enumeration, password validation, database uniqueness, cache commit-ordering, eager Todo users, bounded pagination, required-secret, deterministic-order, settings, and bcrypt regressions |
 | PostgreSQL/Redis integration tests | `docker compose run --rm --no-deps backend sh -c 'alembic upgrade head && pytest integration_tests/ -q'` | Pass | Pass in non-root Python 3.12.14 image: 2/2 | `2026-09-18` | Uses PostgreSQL 16 and authenticated Redis 7; verifies cache key isolation/invalidation and one successful result across concurrent refresh attempts |
 | Backend regression suite | `uv run --python 3.12 --isolated --no-project --with-requirements requirements.txt pytest tests/ -v` | Pass | Pass on Python 3.12.12: 19 collected, 19 passed; 3 deprecation warning groups | `2026-09-18` | Covers AUTH-001/002, TODO-001/002/003, CACHE-001/002; SQLite and stateful Redis mock only |
 | Backend format/lint | `black --check .`; `flake8 app tests integration_tests` | Pass | Black passes for all 33 Python files; Flake8 completes without findings | `2026-09-18` | `QUALITY-001` verified after five documented, scoped `E402` suppressions |
 | Backend dependencies | `docker compose exec -T backend pip check` | Pass | Pass: no broken requirements found | `2026-09-19` | The Passlib compatibility warning was removed by `DEP-002` |
 | Frontend install | `cd frontend && npm ci` | Pass | Pass: 287 packages installed/audited | `2026-09-18` | Command exit 0 |
 | Frontend lint | `cd frontend && npm run lint` | Pass | Pass (exit 0) | `2026-09-18` | ESLint completed without findings |
-| Frontend unit regression | `cd frontend && npm test` | Pass | Pass: 9/9 | `2026-09-19` | Query/session/401/page-size/row-key, lazy routes, native Vite config, dialog description, and structured-error regressions |
+| Frontend unit regression | `cd frontend && npm test` | Pass | Pass: 10/10 | `2026-09-19` | Query/session/401/page-size/row-key, password character/byte limits, lazy routes, native Vite config, dialog description, and structured-error regressions |
 | Frontend build | `cd frontend && npm run build` | Pass | Pass without the Vite 500 kB or planned-native-loader warnings; entry JS is 293.01 kB (91.73 kB gzip) | `2026-09-19` | `FE-007`, `FE-010` |
 | Frontend dependency audit | `cd frontend && npm audit --omit=dev`; `npm audit` | No known vulnerabilities | Pass: 0 production and 0 total vulnerabilities | `2026-09-18` | `DEP-001`; compatible direct/transitive lockfile updates |
 | Playwright | `cd frontend && npm run test:e2e` | Pass | Headless suite passes 4/4 | `2026-09-19` | Deterministic retry-indexed accounts, smoke and structured-error regressions, and both required journeys on Vite 4173 with Docker backend/PostgreSQL/Redis |

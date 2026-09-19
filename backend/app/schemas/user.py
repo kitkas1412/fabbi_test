@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 def validate_bcrypt_password_length(password: str) -> str:
@@ -13,7 +13,7 @@ def validate_bcrypt_password_length(password: str) -> str:
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(..., min_length=6)
 
     _validate_password_length = field_validator("password")(
         validate_bcrypt_password_length
@@ -22,7 +22,7 @@ class UserCreate(BaseModel):
 
 class UserLogin(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(..., min_length=6)
 
     _validate_password_length = field_validator("password")(
         validate_bcrypt_password_length

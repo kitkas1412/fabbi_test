@@ -209,6 +209,8 @@ FastAPI-style structured validation error, for four Chromium tests in total.
 ### API behavior notes
 
 - Access-only endpoints reject expired, malformed, revoked, and refresh JWTs.
+- Registration and login require passwords of at least 6 characters and no more
+  than 72 UTF-8 bytes (the bcrypt limit).
 - `PUT /api/v1/todos/{id}` has partial-update semantics: omitted fields stay
   unchanged, `completed: false` is persisted, and `description: null` clears
   the description.

@@ -51,6 +51,26 @@ async def test_register_rejects_passwords_bcrypt_cannot_hash(client: AsyncClient
 
 
 @pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.parametrize("endpoint", ["register", "login"])
+@pytest.mark.parametrize("password", ["", "short"])
+async def test_auth_rejects_passwords_shorter_than_six_characters(
+    client: AsyncClient,
+    endpoint: str,
+    password: str,
+):
+    """AUTH-006: registration and login share the minimum password contract."""
+    response = await client.post(
+        f"/api/v1/auth/{endpoint}",
+        json={
+            "email": f"short-{endpoint}-{len(password)}@example.com",
+            "password": password,
+        },
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio(loop_scope="session")
 async def test_user_email_is_unique_in_database(db_session):
     """DB-001: the database, not only the API pre-check, rejects duplicates."""
     db_session.add(

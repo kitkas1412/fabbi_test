@@ -37,8 +37,8 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 | Component | Version/configuration | Status |
 |---|---|---|
 | Browser | Playwright 1.63.0 / Chromium 153.0.8010.12 | Suite 4/4 passes; both required Tier 2B journeys complete |
-| Frontend | Host Node 24 / npm; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 9/9, Playwright 4/4, lint, and production build pass |
-| Backend | Non-root container Python 3.12; `http://localhost:8000` | Fast regression suite 34/34 plus PostgreSQL/Redis integration 2/2; Black and unfiltered Flake8 pass; backend health-gated cold start passes |
+| Frontend | Host Node 24 / npm; Playwright Vite `http://127.0.0.1:4173` | Unit regressions 10/10, Playwright 4/4, lint, and production build pass |
+| Backend | Non-root container Python 3.12; `http://localhost:8000` | Fast regression suite 38/38 plus PostgreSQL/Redis integration 2/2; Black and unfiltered Flake8 pass; backend health-gated cold start passes |
 | PostgreSQL | Compose image `postgres:16-alpine` | Running; migration at head; 100 users and 1,000 todos seeded |
 | Redis | Compose image `redis:7-alpine` | Healthy with password authentication; unauthenticated commands are rejected; Journey 1/2 real-cache paths pass |
 | Docker | Docker 29.5.2 / Compose 5.1.4 | Four services healthy; readiness order, non-root app users, and internal-only data ports verified |
@@ -62,12 +62,12 @@ Do not record real passwords or tokens in this document. Use disposable local te
 - [x] Required services become healthy on a cold start without a manual restart.
 - [x] Database migrations completed successfully at `c3d5e7f9a1b2 (head)`.
 - [x] Test data resets deterministically through an exact email allowlist before headless/headed/UI runs.
-- [x] Backend automated tests were executed after remediation: 34/34 passed.
+- [x] Backend automated tests were executed after remediation: 38/38 passed.
 - [x] The fast suite has no Pydantic class-`Config` deprecation warning.
 - [x] PostgreSQL/Redis integration tests were executed after remediation: 2/2 passed.
 - [x] The fast suite has no pytest-asyncio custom-event-loop deprecation warning.
 - [x] Backend Black and unfiltered Flake8 gates pass on the remediated tree.
-- [x] Frontend unit regressions were executed: 9/9 passed.
+- [x] Frontend unit regressions were executed: 10/10 passed.
 - [x] Frontend lint and production build pass without the bundle-size (`FE-007`) or planned native config-loader (`FE-010`) warnings.
 - [x] Frontend production and full dependency audits report 0 vulnerabilities.
 - [x] Playwright Chromium suite passes 4/4, including both required Tier 2B journeys.
@@ -94,6 +94,7 @@ Do not record real passwords or tokens in this document. Use disposable local te
 | AUTH-07 | Refresh | Refresh token rotates once | Valid refresh token | Refresh, then reuse old token | New pair is issued; old refresh token is rejected | High / Critical | `test_refresh_token_rotation_rejects_replay` verifies the old token returns 401 after rotation | Pass (Automated) |
 | AUTH-08 | Logout | Logout revokes the session | Logged-in user | Logout, then try `/auth/me` and refresh | Access and refresh token are rejected | High / Critical | `test_logout_revokes_access_and_refresh_session` verifies both requests return 401 after logout | Pass (Automated) |
 | AUTH-09 | Login | Registered user can log in with valid credentials | Journey 1 account exists and is logged out | Submit the registered email/password | Login returns 200 and the dashboard displays the account | High / Major | Journey 1 logs out after registration, logs back in, and reaches the authenticated dashboard | Pass (E2E) |
+| AUTH-10 | Validation | Registration and login reject empty or too-short passwords | Authentication endpoints available | Submit empty and 5-character passwords to both endpoints | Each request returns 422 before authentication logic or bcrypt | Medium / Major | Parameterized API regression covers both endpoints and both invalid lengths | Pass (Automated) |
 | TODO-01 | CRUD | Owner completes full Todo lifecycle | User A logged in | Create, read, update, delete a Todo | Every operation succeeds and final read is 404 | High / Major | Journey 1 creates, edits, completes, and deletes through the UI; a final authenticated GET returns 404 | Pass (E2E) |
 | TODO-02 | Authorization | User B cannot read User A's Todo | User A owns Todo X; User B logged in | B requests `GET /todos/X` | 404 without data disclosure | High / Critical | API regression and Journey 2 confirm GET returns 404; B's list/UI omit X | Pass (Automated + E2E) |
 | TODO-03 | Authorization | User B cannot update User A's Todo | Same as above | B updates X | 404; Todo remains unchanged | High / Critical | API regression and Journey 2 confirm PUT returns 404; owner title, description, and completion remain unchanged | Pass (Automated + E2E) |
@@ -152,6 +153,7 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | RUN-026 | `2026-09-19` | `60c4a67` | Host Node 24 / npm; Docker backend/PostgreSQL/Redis; Chromium | Nguyen Dinh Duc with Codex assistance | Structured API error rendering | **Pass**: unit tests 8/8, ESLint, production build, and Playwright 4/4 pass | A FastAPI-style 422 `detail` array renders its validation message as toast text without a browser `pageerror`; unexpected error payloads use the form fallback rather than being rendered as React children. FE-010 config-loader warning remained tracked. |
 | RUN-027 | `2026-09-19` | `259ab7f` | Host Node 24 / npm; Docker backend/PostgreSQL/Redis; Chromium | Nguyen Dinh Duc with Codex assistance | Vite native config-loader compatibility | **Pass**: unit tests 9/9, ESLint, production build, and Playwright 4/4 pass | Alias resolution uses `import.meta.dirname`; neither the planned-native-loader nor 500 kB chunk warning is emitted in build or the Playwright Vite server. |
 | RUN-028 | `2026-09-19` | `85346dc` | Rebuilt Docker frontend at `http://localhost:3000`; Chromium | Nguyen Dinh Duc with Codex assistance | Stale frontend image remediation | **Pass**: frontend unit 9/9, ESLint, production build, and Docker-served Journey 1 1/1 pass | The browser's initial Todo-list request is asserted as `200` with `size=100`; the stale image previously sent `size=10000` and received `422`. |
+| RUN-029 | `2026-09-19` | AUTH-006 current worktree | Fresh backend Docker image; host Node 24 / npm | Nguyen Dinh Duc with Codex assistance | Password-validation contract | **Pass**: backend pytest 38/38, Black, Flake8; frontend unit 10/10, ESLint, and production build pass | Empty and 5-character passwords return 422 from registration and login; Zod rejects passwords above 72 UTF-8 bytes. |
 
 ## 8. Defect log
 

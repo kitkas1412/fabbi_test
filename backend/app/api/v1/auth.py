@@ -20,6 +20,7 @@ from app.schemas.user import (
     RefreshTokenRequest,
     TokenResponse,
     UserCreate,
+    UserLogin,
     UserResponse,
 )
 from app.services.auth_service import create_user, get_user_by_email, get_user_by_id
@@ -81,7 +82,7 @@ async def register(
 
 @router.post("/login", response_model=TokenResponse)
 async def login(
-    user_data: UserCreate,
+    user_data: UserLogin,
     db: AsyncSession = Depends(get_db),
     redis: RedisClient = Depends(get_redis),
 ):
