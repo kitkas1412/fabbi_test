@@ -137,13 +137,41 @@ npm run dev
 
 ### Todos
 
-| Method | Endpoint             | Description            |
-| ------ | -------------------- | ---------------------- |
-| GET    | `/api/v1/todos`      | List todos (paginated) |
-| POST   | `/api/v1/todos`      | Create a new todo      |
-| GET    | `/api/v1/todos/{id}` | Get a specific todo    |
-| PUT    | `/api/v1/todos/{id}` | Partially update a todo |
-| DELETE | `/api/v1/todos/{id}` | Delete a todo          |
+| Method | Endpoint                         | Description                                      |
+| ------ | -------------------------------- | ------------------------------------------------ |
+| GET    | `/api/v1/todos`                  | List filtered, paginated Todos                   |
+| POST   | `/api/v1/todos`                  | Create a new Todo                                |
+| PATCH  | `/api/v1/todos/bulk-status`      | Atomically update the status of owned Todos      |
+| GET    | `/api/v1/todos/{id}`             | Get a specific Todo                              |
+| PUT    | `/api/v1/todos/{id}`             | Partially update a Todo                          |
+| DELETE | `/api/v1/todos/{id}`             | Delete a Todo                                    |
+| POST   | `/api/v1/todos/{id}/tags`        | Attach an owned Tag: `{ "tag_id": "<uuid>" }` |
+| DELETE | `/api/v1/todos/{id}/tags/{tag_id}` | Detach an owned Tag                             |
+
+`GET /api/v1/todos` accepts `status`, `tag_id`, `keyword`, `date_from`,
+`date_to`, `page`, and `page_size`. Dates use `YYYY-MM-DD` and define an
+inclusive UTC date range. `size` remains a backward-compatible alias for
+`page_size`; providing both with different values returns `422`. Each response
+includes attached Tags. All list inputs are part of the Redis cache identity.
+
+`PATCH /api/v1/todos/bulk-status` accepts
+`{ "todo_ids": ["<uuid>"], "completed": true }`; it rejects the entire request
+if any Todo is not owned by the caller.
+
+### Tags
+
+| Method | Endpoint             | Description                          |
+| ------ | -------------------- | ------------------------------------ |
+| GET    | `/api/v1/tags`       | List the authenticated user's Tags   |
+| POST   | `/api/v1/tags`       | Create an owned Tag                  |
+| GET    | `/api/v1/tags/{id}`  | Get an owned Tag                     |
+| PATCH  | `/api/v1/tags/{id}`  | Partially update an owned Tag        |
+| DELETE | `/api/v1/tags/{id}`  | Delete an owned Tag and its mappings |
+
+Tag names are trimmed and unique case-insensitively for each user. Cross-user
+Tag and Todo access returns `404`; Tag, mapping, and bulk mutations invalidate
+the affected user's Todo-list cache version. Credentialed CORS permits the
+`PATCH` request required by the bulk-status endpoint for configured origins.
 
 ## Project Structure
 

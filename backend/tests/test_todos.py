@@ -420,7 +420,7 @@ async def test_create_todo_succeeds_when_cache_invalidation_is_unavailable(
     token = await get_auth_token(client, "redis-outage@example.com")
     headers = {"Authorization": f"Bearer {token}"}
     shared_redis.incr.side_effect = RedisError("Redis unavailable")
-    caplog.set_level(logging.WARNING, logger="app.api.v1.todos")
+    caplog.set_level(logging.WARNING, logger="app.services.todo_cache_service")
 
     created = await client.post(
         "/api/v1/todos",

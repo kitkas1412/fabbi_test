@@ -56,13 +56,13 @@ async def test_real_postgresql_and_redis_isolate_and_invalidate_todo_lists(
     cache_keys_a = {
         key
         async for key in redis_client.client.scan_iter(
-            match=f"todos:list:{user_a_id}:v*:page=1:size=20"
+            match=f"todos:list:{user_a_id}:v*:page=1:size=20:*"
         )
     }
     cache_keys_b = {
         key
         async for key in redis_client.client.scan_iter(
-            match=f"todos:list:{user_b_id}:v*:page=1:size=20"
+            match=f"todos:list:{user_b_id}:v*:page=1:size=20:*"
         )
     }
     assert cache_keys_a
@@ -120,3 +120,60 @@ async def test_real_redis_allows_only_one_concurrent_refresh(integration_context
     )
     assert rotated_refresh.status_code == 200, rotated_refresh.text
     integration_context.track_token_pair(rotated_refresh.json())
+
+
+async def test_real_redis_invalidates_todo_lists_for_tag_mapping_and_bulk_mutations(
+    integration_context,
+):
+    """Tier 4 mutations must advance the real owner-scoped Todo cache version."""
+    tokens, headers = await integration_context.register_user()
+    payload = verify_token(tokens["access_token"])
+    assert payload is not None
+    user_id = uuid.UUID(payload["sub"])
+
+    created_todo = await integration_context.client.post(
+        "/api/v1/todos",
+        headers=headers,
+        json={"title": "Real Redis Tag Todo"},
+    )
+    assert created_todo.status_code == 201, created_todo.text
+    initial_list = await integration_context.client.get(
+        "/api/v1/todos", headers=headers
+    )
+    assert initial_list.status_code == 200
+    version = int(await redis_client.get(todo_cache_version_key(user_id)) or "0")
+
+    created_tag = await integration_context.client.post(
+        "/api/v1/tags",
+        headers=headers,
+        json={"name": "Real Redis Tag"},
+    )
+    assert created_tag.status_code == 201, created_tag.text
+    version += 1
+    assert await redis_client.get(todo_cache_version_key(user_id)) == str(version)
+
+    attached = await integration_context.client.post(
+        f"/api/v1/todos/{created_todo.json()['id']}/tags",
+        headers=headers,
+        json={"tag_id": created_tag.json()["id"]},
+    )
+    assert attached.status_code == 204, attached.text
+    version += 1
+    assert await redis_client.get(todo_cache_version_key(user_id)) == str(version)
+
+    bulk_updated = await integration_context.client.patch(
+        "/api/v1/todos/bulk-status",
+        headers=headers,
+        json={"todo_ids": [created_todo.json()["id"]], "completed": True},
+    )
+    assert bulk_updated.status_code == 200, bulk_updated.text
+    version += 1
+    assert await redis_client.get(todo_cache_version_key(user_id)) == str(version)
+
+    deleted_tag = await integration_context.client.delete(
+        f"/api/v1/tags/{created_tag.json()['id']}",
+        headers=headers,
+    )
+    assert deleted_tag.status_code == 204, deleted_tag.text
+    version += 1
+    assert await redis_client.get(todo_cache_version_key(user_id)) == str(version)

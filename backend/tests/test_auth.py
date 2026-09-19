@@ -44,6 +44,7 @@ async def test_cors_allows_only_configured_origin(client: AsyncClient):
     )
 
     assert allowed.headers["access-control-allow-origin"] == allowed_origin
+    assert "PATCH" in allowed.headers["access-control-allow-methods"]
     assert "access-control-allow-origin" not in rejected.headers
 
 

@@ -139,7 +139,8 @@ and cache-invalidation failures below 0.1% of successful share mutations.
   notifications, reminders, groups, or organization roles.
 - Delegated administration and collaborator re-sharing.
 - Transfer of list ownership, granular per-Todo permissions, comments,
-  activity-feed UI, tags, and real-time presence.
+  activity-feed UI, and real-time presence. User-owned Tags are delivered
+  independently as Tier 4 work; shared-tag authorization remains out of scope.
 - WebSocket/SSE push to force an already-open collaborator browser to repaint.
   API authorization and backend cache invalidation are immediate; the client
   removes inaccessible data on its next fetch or authorization failure.
