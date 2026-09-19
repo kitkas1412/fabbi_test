@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Scope/version | HEAD `259ab7f` |
+| Scope/version | HEAD `85346dc` |
 | Author | Nguyen Dinh Duc |
 | Test window | `2026-09-18` – `2026-09-19`; automated remediation and required E2E journeys complete; listed exploratory manual cases remain Not Run |
 | Environment | macOS 26.6.2; Docker 29.5.2 / Compose 5.1.4; Compose application stack |
@@ -43,7 +43,7 @@ Verify authentication, authorization, Todo CRUD, caching, frontend session isola
 | Redis | Compose image `redis:7-alpine` | Healthy with password authentication; unauthenticated commands are rejected; Journey 1/2 real-cache paths pass |
 | Docker | Docker 29.5.2 / Compose 5.1.4 | Four services healthy; readiness order, non-root app users, and internal-only data ports verified |
 | OS | macOS 26.6.2 (Build 25G83) | Ready |
-| Commit | `259ab7f` | Automated remediation, browser journeys, infrastructure, database performance, and final frontend verification executed |
+| Commit | `85346dc` | Automated remediation, browser journeys, infrastructure, database performance, and deployed-frontend page-size verification executed |
 
 Required test identities:
 
@@ -151,7 +151,7 @@ Add cases for every new finding or acceptance criterion. Keep test IDs stable ac
 | RUN-025 | `2026-09-19` | `b4242a0` | Host Node 24 / npm; Docker backend/PostgreSQL/Redis; Chromium | Nguyen Dinh Duc with Codex assistance | Todo-dialog accessibility description | **Pass**: unit tests 7/7, ESLint, production build, and Playwright 3/3 pass | Create and edit Todo dialogs expose a contextual description to screen readers. Playwright exercised both dialogs and emitted no Radix missing-description warning; FE-010 config-loader warning remained tracked. |
 | RUN-026 | `2026-09-19` | `60c4a67` | Host Node 24 / npm; Docker backend/PostgreSQL/Redis; Chromium | Nguyen Dinh Duc with Codex assistance | Structured API error rendering | **Pass**: unit tests 8/8, ESLint, production build, and Playwright 4/4 pass | A FastAPI-style 422 `detail` array renders its validation message as toast text without a browser `pageerror`; unexpected error payloads use the form fallback rather than being rendered as React children. FE-010 config-loader warning remained tracked. |
 | RUN-027 | `2026-09-19` | `259ab7f` | Host Node 24 / npm; Docker backend/PostgreSQL/Redis; Chromium | Nguyen Dinh Duc with Codex assistance | Vite native config-loader compatibility | **Pass**: unit tests 9/9, ESLint, production build, and Playwright 4/4 pass | Alias resolution uses `import.meta.dirname`; neither the planned-native-loader nor 500 kB chunk warning is emitted in build or the Playwright Vite server. |
-| RUN-028 | `2026-09-19` | FE-011 current worktree | Rebuilt Docker frontend at `http://localhost:3000`; Chromium | Nguyen Dinh Duc with Codex assistance | Stale frontend image remediation | **Pass**: frontend unit 9/9, ESLint, production build, and Docker-served Journey 1 1/1 pass | The browser's initial Todo-list request is asserted as `200` with `size=100`; the stale image previously sent `size=10000` and received `422`. |
+| RUN-028 | `2026-09-19` | `85346dc` | Rebuilt Docker frontend at `http://localhost:3000`; Chromium | Nguyen Dinh Duc with Codex assistance | Stale frontend image remediation | **Pass**: frontend unit 9/9, ESLint, production build, and Docker-served Journey 1 1/1 pass | The browser's initial Todo-list request is asserted as `200` with `size=100`; the stale image previously sent `size=10000` and received `422`. |
 
 ## 8. Defect log
 

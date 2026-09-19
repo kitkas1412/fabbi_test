@@ -7,8 +7,8 @@
 | Assessment branch | `assessment/nguyen-dinh-duc` |
 | Author | Nguyen Dinh Duc |
 | Review date | `2026-09-19` |
-| Application version/commit | `259ab7f` (`fix(frontend): use native-compatible Vite config paths`) |
-| Overall status | Historical remediation findings are fixed or verified. `FE-011` is fixed and verified in the current worktree, pending commit. Tier 4 is optional and not implemented. Manual exploratory cases and final PR review remain separate submission activities. |
+| Application version/commit | `85346dc` (`test(e2e): verify deployed Todo requests use bounded page size`) |
+| Overall status | Historical remediation findings and `FE-011` are verified. Tier 4 is optional and not implemented. Manual exploratory cases and final PR review remain separate submission activities. |
 
 ## Purpose
 
@@ -69,14 +69,14 @@ No Critical or High issue may remain Deferred for final submission.
 | FE-008 | Accessibility | Todo dialogs omit an accessible description | Low | `frontend/src/features/todos/components/TodoForm.tsx` | Verified | `b4242a0` | Create and edit Todo dialogs now render a contextual `DialogDescription`, associating the form purpose with the dialog for screen readers; Playwright no longer logs Radix's missing-description warning. |
 | FE-009 | Error handling | Structured registration validation errors can crash React toast rendering | Medium | `frontend/src/lib/apiError.ts`, `frontend/src/features/auth/components/` | Verified | `60c4a67` | Axios error details are normalized to a non-empty string before reaching Sonner. FastAPI 422 arrays expose their first validation `msg`; unknown payloads use a safe form-specific fallback. |
 | FE-010 | Build compatibility | Vite config uses `__dirname`, unsupported by the planned native config loader | Low | `frontend/vite.config.ts` | Verified | `259ab7f` | The alias now resolves from `import.meta.dirname`; Vite's production build succeeds without the planned-native-loader warning. |
-| FE-011 | Runtime deployment | A stale frontend bundle requests an unsupported Todo page size | High | Running `frontend` image; `frontend/src/features/todos/api/queryKeys.ts` | Verified | Current worktree; commit pending | Rebuilt/recreated frontend image and Playwright Journey 1 against `http://localhost:3000` verifies the initial Todo request returns `200` with `size=100`. |
+| FE-011 | Runtime deployment | A stale frontend bundle requests an unsupported Todo page size | High | Running `frontend` image; `frontend/src/features/todos/api/queryKeys.ts` | Verified | `85346dc` | Rebuilt/recreated frontend image and Playwright Journey 1 against `http://localhost:3000` verifies the initial Todo request returns `200` with `size=100`. |
 | DOC-001 | Deliverables | `docs/` was ignored despite required assessment documents | Medium | `.gitignore` | Verified | `3d1936b` | Deliverables are tracked while `docs/ANSWER_KEY.md` remains ignored |
 
 Add newly discovered issues before implementing their fixes. Do not silently omit a finding because it falls outside the minimum five fixes required by Tier 1.
 
 ### FE-011 — Stale frontend image requests an invalid Todo page size
 
-- **Status:** Verified (current worktree; commit pending)
+- **Status:** Verified
 - **Severity:** High
 - **Category:** Deployment / Availability
 - **Location:** The running Compose `frontend` image; current source default is
@@ -116,7 +116,7 @@ Add newly discovered issues before implementing their fixes. Do not silently omi
   `GET /todos?page=1&size=100` return `200`; the stale bundle's request with
   `size=10000` returns `422`. After the targeted image rebuild, Playwright
   Journey 1 against Docker frontend passes 1/1 and verifies `size=100`.
-- **PR/commit:** Current worktree; commit pending.
+- **PR/commit:** `85346dc`.
 
 ## Detailed finding template
 
