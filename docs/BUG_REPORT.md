@@ -8,7 +8,7 @@
 | Author | Nguyen Dinh Duc |
 | Review date | `2026-09-19` |
 | Application version/commit | `259ab7f` (`fix(frontend): use native-compatible Vite config paths`) |
-| Overall status | All recorded remediation findings are fixed or verified. Tier 4 is optional and not implemented. Manual exploratory cases and final PR review remain separate submission activities. |
+| Overall status | Historical remediation findings are fixed or verified. `FE-011` is an open runtime/deployment finding. Tier 4 is optional and not implemented. Manual exploratory cases and final PR review remain separate submission activities. |
 
 ## Purpose
 
@@ -69,9 +69,52 @@ No Critical or High issue may remain Deferred for final submission.
 | FE-008 | Accessibility | Todo dialogs omit an accessible description | Low | `frontend/src/features/todos/components/TodoForm.tsx` | Verified | `b4242a0` | Create and edit Todo dialogs now render a contextual `DialogDescription`, associating the form purpose with the dialog for screen readers; Playwright no longer logs Radix's missing-description warning. |
 | FE-009 | Error handling | Structured registration validation errors can crash React toast rendering | Medium | `frontend/src/lib/apiError.ts`, `frontend/src/features/auth/components/` | Verified | `60c4a67` | Axios error details are normalized to a non-empty string before reaching Sonner. FastAPI 422 arrays expose their first validation `msg`; unknown payloads use a safe form-specific fallback. |
 | FE-010 | Build compatibility | Vite config uses `__dirname`, unsupported by the planned native config loader | Low | `frontend/vite.config.ts` | Verified | `259ab7f` | The alias now resolves from `import.meta.dirname`; Vite's production build succeeds without the planned-native-loader warning. |
+| FE-011 | Runtime deployment | A stale frontend bundle requests an unsupported Todo page size | High | Running `frontend` image; `frontend/src/features/todos/api/queryKeys.ts` | Open | — | On `2026-09-19`, browser-originated requests use `GET /api/v1/todos?page=1&size=10000`; backend returns `422`, while current source uses the valid default `100`. |
 | DOC-001 | Deliverables | `docs/` was ignored despite required assessment documents | Medium | `.gitignore` | Verified | `3d1936b` | Deliverables are tracked while `docs/ANSWER_KEY.md` remains ignored |
 
 Add newly discovered issues before implementing their fixes. Do not silently omit a finding because it falls outside the minimum five fixes required by Tier 1.
+
+### FE-011 — Stale frontend image requests an invalid Todo page size
+
+- **Status:** Open
+- **Severity:** High
+- **Category:** Deployment / Availability
+- **Location:** The running Compose `frontend` image; current source default is
+  `frontend/src/features/todos/api/queryKeys.ts::DEFAULT_TODO_PAGE_SIZE`.
+- **Requirement:** The frontend default must respect the backend
+  `GET /api/v1/todos` limit of `1..100`.
+- **Observed behavior:** After a successful login, the browser displays
+  “Failed to load todos. Please try again.” The backend log records
+  `GET /api/v1/todos?page=1&size=10000` followed by `422 Unprocessable Entity`.
+- **Expected behavior:** The browser requests `size=100` (the current frontend
+  default and backend maximum) and renders the Todo list or the empty state.
+- **Impact:** A logged-in user cannot load Todos. The generic UI error hides the
+  actionable server validation reason.
+- **Reproduction:**
+  1. Start the currently cached Compose frontend image and open
+     `http://localhost:3000`.
+  2. Log in with a valid account.
+  3. Observe the Todo error UI and the backend request with `size=10000`.
+  4. Compare with current source, where `DEFAULT_TODO_PAGE_SIZE` is `100`, or
+     call the API with the same token and `size=100` to receive `200`.
+- **Root cause:** The running frontend image was created at
+  `2026-09-18T07:56:24Z`, before the bounded-page-size change, then restarted
+  without rebuilding. It serves an obsolete Vite bundle while the backend is
+  current and correctly rejects the old request contract.
+- **Fix proposal:** Rebuild and recreate the frontend from the current commit:
+  `docker compose up -d --build --force-recreate frontend`. Add a deployment
+  verification that checks the served asset's Todo request uses `size=100` so a
+  cached image cannot silently drift from the backend contract.
+- **Compatibility/tradeoffs:** Rebuilding the static frontend is safe and does
+  not alter data. It briefly restarts only the frontend service; active browser
+  sessions need a refresh.
+- **Regression test:** Existing `frontend/tests/cache-isolation.test.ts` checks
+  the source default. Add a container/served-asset check when implementing the
+  deployment guard.
+- **Integration/manual evidence:** `2026-09-19` local runtime: valid login and
+  `GET /todos?page=1&size=100` return `200`; the browser's stale-bundle request
+  with `size=10000` returns `422`.
+- **PR/commit:** Pending fix.
 
 ## Detailed finding template
 
