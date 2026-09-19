@@ -8,7 +8,7 @@
 | Author | Nguyen Dinh Duc |
 | Review date | `2026-09-19` |
 | Application version/commit | `85346dc` (`test(e2e): verify deployed Todo requests use bounded page size`) |
-| Overall status | Historical remediation findings and `FE-011` are verified. `AUTH-006` is fixed and verified in the current worktree, pending commit. Tier 4 is optional and not implemented. Manual exploratory cases and final PR review remain separate submission activities. |
+| Overall status | Historical remediation findings and `FE-011` are verified. `AUTH-006` and `CONFIG-002` are fixed and verified in the current worktree, pending commit. Tier 4 is optional and not implemented. Manual exploratory cases and final PR review remain separate submission activities. |
 
 ## Purpose
 
@@ -59,10 +59,11 @@ No Critical or High issue may remain Deferred for final submission.
 | INFRA-003 | Network | PostgreSQL and unauthenticated Redis are published to the host | High | `docker-compose.yml` | Verified | `de88674` | `docker compose ps` shows only internal `5432/tcp` and `6379/tcp`; unauthenticated `redis-cli ping` returns `NOAUTH` |
 | INFRA-004 | Containers | Images run as root and lack scoped `.dockerignore` files | Medium | Backend/frontend Dockerfiles | Verified | `de88674` | Backend runs as `uid=999(app)`, frontend as `uid=1000(node)`; scoped ignore files reduce contexts to application inputs and exclude nested caches |
 | INFRA-005 | Build | Frontend build is not reproducible and runtime Vite env is ineffective | Medium | Frontend Dockerfile and Compose | Verified | `de88674` | Image build uses `npm ci`; `VITE_API_URL` is supplied as a build argument; production image build passes |
-| TEST-001 | Coverage | Existing tests cover happy paths but not security boundaries | High | `backend/tests/` | Verified | `cea96fd`, `5816658`, `576e7c6`–current | Suite covers expiry, token type, refresh rotation/revocation, login enumeration, password validation, database email uniqueness, cross-user CRUD, cache isolation/invalidation/commit ordering, eager Todo users, bounded pagination, partial updates, required secrets, stable ordering, and settings loading; 38/38 pass |
+| TEST-001 | Coverage | Existing tests cover happy paths but not security boundaries | High | `backend/tests/` | Verified | `cea96fd`, `5816658`, `576e7c6`–current | Suite covers expiry, token type, refresh rotation/revocation, login enumeration, password validation, database email uniqueness, cross-user CRUD, cache isolation/invalidation/commit ordering, eager Todo users, bounded pagination, partial updates, required secrets, stable ordering, settings, and CORS configuration; 40/40 pass |
 | TEST-002 | Fidelity | SQLite and per-request Redis mocks do not validate production behavior | Medium | `backend/integration_tests/` | Verified | `6a68c70` | Dedicated Compose suite passes 2/2 against PostgreSQL 16 and authenticated Redis 7: direct user-scoped cache namespaces/invalidation plus atomic concurrent refresh rotation |
 | TEST-003 | Test maintenance | Custom async event-loop fixture is deprecated and will become an error | Low | `backend/tests/`, `backend/pytest.ini` | Verified | `3326159` | Tests declare session loop scope with pytest-asyncio and a warning filter makes reintroducing the deprecated custom fixture fail; fast suite 38/38 has no pytest-asyncio event-loop warning |
 | CONFIG-001 | Backend compatibility | Pydantic class-based `Config` is deprecated before Pydantic v3 | Low | `backend/app/core/config.py` | Verified | `dd80d33` | `SettingsConfigDict` preserves the environment-file and case-sensitive contract; configuration regression plus backend tests, Black, and Flake8 pass without the Pydantic warning |
+| CONFIG-002 | Security | CORS permits any origin and SQL echo logs queries by default | High | `backend/app/main.py`, `backend/app/core/config.py` | Verified | Current worktree; commit pending | Credentialed CORS now uses configured non-wildcard origins; `DB_ECHO` defaults to `false`. Regressions cover allowed/rejected origins, CORS validation, and the logging default. |
 | DEP-001 | Frontend security | Production dependency tree contains 6 known vulnerabilities | High | `frontend/package.json`, `frontend/package-lock.json` | Verified | `15426ca` | Axios floor raised to 1.20.0, React Router DOM floor to 7.18.4, and compatible transitive fixes are locked; `npm audit` reports 0 vulnerabilities |
 | DEP-002 | Backend compatibility | Passlib/bcrypt stack emits an internal version lookup error during password hashing | Medium | `backend/requirements.txt`, `backend/app/core/security.py` | Verified | `fecd7e0` | Removed unmaintained Passlib and call bcrypt directly; current `$2b$` hashes remain valid. Registration/login reject passwords over bcrypt's 72 UTF-8-byte limit before hashing, and the backend suite has no Passlib/`crypt` warning. |
 | QUALITY-001 | Backend quality | Required backend Black and Flake8 gates failed | Low | `backend/tests/conftest.py` | Verified | `24bba4d` | The five intentionally delayed imports document the database bootstrap requirement and use scoped `# noqa: E402`; `black --check .` and unfiltered `flake8 app tests` pass |
@@ -94,8 +95,29 @@ Add newly discovered issues before implementing their fixes. Do not silently omi
 - **Regression test:** Backend parameterized API test covers empty and 5-character
   passwords for `/auth/register` and `/auth/login`. Frontend unit test covers a
   valid 6-character password and UTF-8 boundaries (18 vs. 19 emoji).
-- **Verification:** Backend Docker suite 38/38, Black, and Flake8 pass;
+- **Verification:** Backend Docker suite 40/40, Black, and Flake8 pass;
   frontend unit suite 10/10, ESLint, and production build pass.
+- **PR/commit:** Current worktree; commit pending.
+
+### CONFIG-002 — Credentialed CORS is open and SQL logging defaults to on
+
+- **Status:** Verified (current worktree; commit pending)
+- **Severity:** High
+- **Category:** Configuration / Data exposure
+- **Location:** `backend/app/main.py::CORSMiddleware` and
+  `backend/app/core/config.py::Settings`.
+- **Observed behavior:** CORS used `allow_origins=["*"]` while credentials were
+  enabled, and SQLAlchemy echo was on by default. Any browser origin could make
+  requests, and application logs could include query values such as email
+  addresses.
+- **Fix applied:** Added comma-separated `CORS_ORIGINS` configuration with
+  normalization and wildcard rejection. The middleware accepts only that
+  allowlist and required API methods/headers. `DB_ECHO` now defaults to `false`;
+  Compose and `.env.example` expose both settings explicitly.
+- **Regression test:** Configuration tests cover default values, multi-origin
+  parsing, and wildcard rejection. API regression verifies the local frontend
+  origin receives CORS headers while an untrusted origin does not.
+- **Verification:** Backend Docker suite 40/40, Black, and Flake8 pass.
 - **PR/commit:** Current worktree; commit pending.
 
 ### FE-011 — Stale frontend image requests an invalid Todo page size
@@ -174,7 +196,7 @@ Copy this section once per finding or link the register row to the corresponding
 |---|---|---|---|
 | Tier 1: report impactful findings | This document and final PR description | Register contains location, severity, cause, fix and verification for every recorded finding | Complete; PR link remains an external submission task |
 | Tier 1: at least five fixes, including two backend and one frontend | Finding register and implementation commits | AUTH-001/002, TODO-001/002/003, CACHE-001/002, FE-001/002/003 and later fixes | Complete |
-| Tier 2A: at least three backend critical scenarios | `backend/tests/` | 38/38 pass, including expiry, token type, ownership, password validation, partial-update, cache, rotation/revocation, configuration and dependency regressions | Complete |
+| Tier 2A: at least three backend critical scenarios | `backend/tests/` | 40/40 pass, including expiry, token type, ownership, password validation, partial-update, cache, rotation/revocation, configuration and dependency regressions | Complete |
 | Tier 2B: two required Playwright scenarios | `frontend/e2e/` and `frontend/playwright.config.ts` | Lifecycle Journey 1 and cross-user isolation Journey 2 pass; smoke and structured-error regressions bring the suite to 4/4 | Complete (2/2 required journeys) |
 | Tier 2C: manual test plan | `docs/TEST_PLAN.md` | Structured matrix, execution history and automated evidence are recorded; listed exploratory cases remain explicitly Not Run | Complete deliverable |
 | Tier 3A: Todo Sharing specification only | `docs/TODO_SHARING_SPEC.md` | Production-grade proposed specification with stories, schema, APIs, authorization, cache and rollout | Complete |
@@ -189,7 +211,7 @@ Copy this section once per finding or link the register row to the corresponding
 | Check | Command/environment | Expected | Actual | Date | Evidence |
 |---|---|---|---|---|---|
 | Compose validation | `docker compose --env-file .env.example config -q` | Pass | Pass (exit 0) | `2026-09-18` | Required secret variables resolve from the documented template; rendered Compose is valid |
-| Backend tests | `docker compose run --rm --no-deps backend pytest tests/ -v` | Pass | Pass in a fresh non-root Python 3.12 image: 38/38; no warnings after the bcrypt migration | `2026-09-19` | Includes refresh rotation/revocation, login-enumeration, password validation, database uniqueness, cache commit-ordering, eager Todo users, bounded pagination, required-secret, deterministic-order, settings, and bcrypt regressions |
+| Backend tests | `docker compose run --rm --no-deps backend pytest tests/ -v` | Pass | Pass in a fresh non-root Python 3.12 image: 40/40; no warnings after the bcrypt migration | `2026-09-19` | Includes refresh rotation/revocation, login-enumeration, password validation, CORS configuration, database uniqueness, cache commit-ordering, eager Todo users, bounded pagination, required-secret, deterministic-order, settings, and bcrypt regressions |
 | PostgreSQL/Redis integration tests | `docker compose run --rm --no-deps backend sh -c 'alembic upgrade head && pytest integration_tests/ -q'` | Pass | Pass in non-root Python 3.12.14 image: 2/2 | `2026-09-18` | Uses PostgreSQL 16 and authenticated Redis 7; verifies cache key isolation/invalidation and one successful result across concurrent refresh attempts |
 | Backend regression suite | `uv run --python 3.12 --isolated --no-project --with-requirements requirements.txt pytest tests/ -v` | Pass | Pass on Python 3.12.12: 19 collected, 19 passed; 3 deprecation warning groups | `2026-09-18` | Covers AUTH-001/002, TODO-001/002/003, CACHE-001/002; SQLite and stateful Redis mock only |
 | Backend format/lint | `black --check .`; `flake8 app tests integration_tests` | Pass | Black passes for all 33 Python files; Flake8 completes without findings | `2026-09-18` | `QUALITY-001` verified after five documented, scoped `E402` suppressions |

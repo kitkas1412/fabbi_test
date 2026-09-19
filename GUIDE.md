@@ -71,6 +71,12 @@ are intentionally not published to the host. Administer them through
 for healthy dependencies and run as non-root users. The local `.env` file is
 ignored by Git; never commit it.
 
+Set `CORS_ORIGINS` to a comma-separated allowlist of browser origins (for
+example, `https://app.example.com,https://admin.example.com`). Wildcards are
+rejected because the API accepts credentialed requests. `DB_ECHO` defaults to
+`false`; enable it only briefly for local SQL diagnostics because queries can
+contain personal data.
+
 By default the seed command creates 100 users and 1,000 TODOs so the assessment is quick to set up. To test performance with a larger dataset, pass seed variables explicitly:
 
 ```bash

@@ -24,6 +24,29 @@ async def test_register_success(client: AsyncClient):
     assert data["token_type"] == "bearer"
 
 
+@pytest.mark.asyncio(loop_scope="session")
+async def test_cors_allows_only_configured_origin(client: AsyncClient):
+    """CONFIG-002: credentialed CORS is restricted to the configured frontend."""
+    allowed_origin = "http://localhost:3000"
+    allowed = await client.options(
+        "/health",
+        headers={
+            "Origin": allowed_origin,
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    rejected = await client.options(
+        "/health",
+        headers={
+            "Origin": "https://untrusted.example.com",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+
+    assert allowed.headers["access-control-allow-origin"] == allowed_origin
+    assert "access-control-allow-origin" not in rejected.headers
+
+
 def test_bcrypt_password_helpers_verify_existing_and_new_hashes():
     """DEP-002: direct bcrypt avoids Passlib's incompatible version lookup."""
     password = "password123"
