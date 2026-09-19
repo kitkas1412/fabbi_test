@@ -74,6 +74,8 @@ test("each Todo row exposes only the multi-select checkbox", () => {
   assert.equal((todoItemSource.match(/<Checkbox/g) ?? []).length, 1);
   assert.match(todoItemSource, /aria-label="Select for bulk action"/);
   assert.match(todoItemSource, /onClick=\{\(\) => onToggle\(todo\)\}/);
+  assert.match(todoItemSource, /Manage tags for \$\{todo\.title\}/);
+  assert.match(todoItemSource, /onManageTags\(todo\.id\)/);
 });
 
 test("route pages are lazy loaded instead of inflating the entry bundle", () => {

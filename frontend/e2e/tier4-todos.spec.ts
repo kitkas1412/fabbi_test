@@ -45,42 +45,28 @@ test("manages Tags, filters Todos, and bulk-updates selected work", async (
 
   await createTodo(page, taggedTitle);
   await createTodo(page, plainTitle);
-  const accessToken = await page.evaluate(() => localStorage.getItem("access_token"));
-  expect(accessToken).not.toBeNull();
-
-  const [todosResponse, tagsResponse] = await Promise.all([
-    request.get(`${E2E_API_BASE_URL}/api/v1/todos`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }),
-    request.get(`${E2E_API_BASE_URL}/api/v1/tags`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }),
-  ]);
-  const todos = (await todosResponse.json()) as { items: { id: string; title: string }[] };
-  const tags = (await tagsResponse.json()) as { id: string; name: string }[];
-  const taggedTodo = todos.items.find((todo) => todo.title === taggedTitle);
-  const tag = tags.find((candidate) => candidate.name === tagName);
-  expect(taggedTodo).toBeDefined();
-  expect(tag).toBeDefined();
-
-  const attachResponse = await request.post(
-    `${E2E_API_BASE_URL}/api/v1/todos/${taggedTodo?.id}/tags`,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      data: { tag_id: tag?.id },
-    },
-  );
-  expect(attachResponse.status()).toBe(204);
-
-  await page.reload();
   const taggedTodoRow = page.getByTestId("todo-item").filter({ hasText: taggedTitle });
+  await taggedTodoRow.getByRole("button", { name: `Manage tags for ${taggedTitle}` }).click();
+  const todoTagDialog = page.getByRole("dialog", { name: `Tags for ${taggedTitle}` });
+  const attachResponsePromise = page.waitForResponse(
+    (response) =>
+      response.url().includes("/tags") &&
+      response.request().method() === "POST" &&
+      response.request().postDataJSON()?.tag_id,
+  );
+  await todoTagDialog.getByRole("button", { name: tagName }).click();
+  expect((await attachResponsePromise).status()).toBe(204);
+  await expect(todoTagDialog.getByRole("button", { name: `Remove ${tagName}` })).toBeVisible();
+  await todoTagDialog.getByRole("button", { name: "Close" }).click();
   await expect(taggedTodoRow.getByText(tagName, { exact: true })).toBeVisible();
 
-  await page.getByLabel("Tag", { exact: true }).selectOption(tag?.id);
+  const tag = await page.getByLabel("Tag", { exact: true }).locator("option", { hasText: tagName }).getAttribute("value");
+  expect(tag).not.toBeNull();
+  await page.getByLabel("Tag", { exact: true }).selectOption(tag ?? undefined);
   const filteredResponsePromise = page.waitForResponse(
     (response) =>
       response.url().includes("/api/v1/todos?") &&
-      response.url().includes(`tag_id=${tag?.id}`),
+      response.url().includes(`tag_id=${tag}`),
   );
   await page.getByRole("button", { name: "Apply filters" }).click();
   expect((await filteredResponsePromise).status()).toBe(200);

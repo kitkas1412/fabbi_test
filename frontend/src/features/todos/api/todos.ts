@@ -63,6 +63,12 @@ interface BulkStatusVariables {
   userId: string;
 }
 
+interface TodoTagVariables {
+  todoId: string;
+  tagId: string;
+  userId: string;
+}
+
 export function useTodos(
   userId: string | undefined,
   page: number = 1,
@@ -180,6 +186,36 @@ export function useToggleTodo() {
       });
     },
   };
+}
+
+export function useAttachTodoTag() {
+  return useMutation({
+    mutationFn: async ({ todoId, tagId }: TodoTagVariables): Promise<void> => {
+      await api.post(`/todos/${todoId}/tags`, { tag_id: tagId });
+    },
+    onSuccess: async (_data, { userId }) => {
+      await queryClient.invalidateQueries({ queryKey: todoKeys.user(userId) });
+      toast.success("Tag added to todo");
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Failed to add tag to todo"));
+    },
+  });
+}
+
+export function useDetachTodoTag() {
+  return useMutation({
+    mutationFn: async ({ todoId, tagId }: TodoTagVariables): Promise<void> => {
+      await api.delete(`/todos/${todoId}/tags/${tagId}`);
+    },
+    onSuccess: async (_data, { userId }) => {
+      await queryClient.invalidateQueries({ queryKey: todoKeys.user(userId) });
+      toast.success("Tag removed from todo");
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Failed to remove tag from todo"));
+    },
+  });
 }
 
 export function useBulkUpdateTodoStatus() {

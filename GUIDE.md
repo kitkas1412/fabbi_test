@@ -179,7 +179,8 @@ the affected user's Todo-list cache version. Credentialed CORS permits the
 
 The dashboard has an explicit filter bar for keyword, status, Tag, and an
 inclusive date range; **Clear filters** restores the unfiltered list. Todo rows
-render their attached Tags. **Manage tags** opens private Tag create, rename,
+render their attached Tags and include a **Tags** control to attach an available
+Tag or remove an attached one. **Manage tags** opens private Tag create, rename,
 color, and delete controls. Select one or more visible Todos to mark the group
 completed or active. React Query keys include the signed-in user, page, size,
 keyword, status, Tag, and both dates; Todo and Tag mutations invalidate all

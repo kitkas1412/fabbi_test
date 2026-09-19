@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { TodoItem } from "./TodoItem";
 import { TodoForm } from "./TodoForm";
+import { TodoTagDialog } from "./TodoTagDialog";
 import type { Todo } from "../api/todos";
 import { useDeleteTodo, useToggleTodo } from "../api/todos";
 
@@ -16,6 +17,7 @@ export function TodoList({
   onSelectionChange,
 }: TodoListProps) {
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+  const [taggingTodoId, setTaggingTodoId] = useState<string | null>(null);
   const deleteTodo = useDeleteTodo();
   const toggleTodo = useToggleTodo();
 
@@ -26,6 +28,8 @@ export function TodoList({
   const handleEdit = (todo: Todo) => {
     setEditingTodo(todo);
   };
+
+  const taggingTodo = todos.find((todo) => todo.id === taggingTodoId) ?? null;
 
   const handleDelete = (todo: Todo) => {
     deleteTodo.mutate({ id: todo.id, userId: todo.user_id });
@@ -60,6 +64,7 @@ export function TodoList({
             selected={selectedTodoIds.includes(todo.id)}
             onSelect={handleSelection}
             onToggle={handleToggle}
+            onManageTags={setTaggingTodoId}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
@@ -74,6 +79,7 @@ export function TodoList({
           onClose={() => setEditingTodo(null)}
         />
       )}
+      <TodoTagDialog todo={taggingTodo} onClose={() => setTaggingTodoId(null)} />
     </>
   );
 }

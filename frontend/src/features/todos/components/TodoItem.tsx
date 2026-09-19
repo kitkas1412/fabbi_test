@@ -1,6 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Circle, Pencil, Trash2 } from "lucide-react";
+import { CheckCircle2, Circle, Pencil, Tag as TagIcon, Trash2 } from "lucide-react";
 import type { Todo } from "../api/todos";
 
 interface TodoItemProps {
@@ -8,6 +8,7 @@ interface TodoItemProps {
   selected: boolean;
   onSelect: (todoId: string, selected: boolean) => void;
   onToggle: (todo: Todo) => void;
+  onManageTags: (todoId: string) => void;
   onEdit: (todo: Todo) => void;
   onDelete: (todo: Todo) => void;
 }
@@ -17,6 +18,7 @@ export function TodoItem({
   selected,
   onSelect,
   onToggle,
+  onManageTags,
   onEdit,
   onDelete,
 }: TodoItemProps) {
@@ -75,6 +77,17 @@ export function TodoItem({
             ))}
           </div>
         )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="xs"
+          className="mt-1.5 h-6 px-1.5 text-muted-foreground"
+          aria-label={`Manage tags for ${todo.title}`}
+          onClick={() => onManageTags(todo.id)}
+        >
+          <TagIcon className="size-3.5" />
+          Tags
+        </Button>
       </div>
 
       <span
